@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pseudocode Interpreter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Pseudocode Interpreter</h1>
+        <textarea id="pseudocode" placeholder="Enter your pseudocode here..."></textarea>
+        <div class="button-container">
+            <button id="load-example">Load Example</button>
+            <button id="interpret">Interpret</button>
+        </div>
+        <div id="output"></div>
+    </div>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
