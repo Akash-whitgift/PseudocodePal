@@ -1,0 +1,45 @@
+Error on line 1: Invalid expression: 10 is greater than 5. Error: invalid syntax (<string>, line 1)
+Error on line 12: Invalid expression: The value of 10 is. Error: invalid syntax (<string>, line 1)
+10
+Error on line 1: Invalid expression: Current 0:. Error: invalid syntax (<string>, line 1)
+0
+Error on line 1: Invalid expression: Current 1:. Error: invalid syntax (<string>, line 1)
+1
+Error on line 1: Invalid expression: Current 2:. Error: invalid syntax (<string>, line 1)
+2
+Error on line 1: Invalid expression: Current 3:. Error: invalid syntax (<string>, line 1)
+3
+Error on line 1: Invalid expression: Current 4:. Error: invalid syntax (<string>, line 1)
+4
+Error on line 22: Invalid expression: Counting from 1 to 3:. Error: invalid syntax (<string>, line 1)
+Error on line 3: Invalid expression: The 30 of (10 + 5) * 2 is:. Error: invalid syntax (<string>, line 1)
+30
+Error on line 1: Invalid expression: Adding two numbers:. Error: invalid syntax (<string>, line 1)
+12
+Error on line 23: Invalid expression: Array elements:. Error: invalid syntax (<string>, line 1)
+Error on line 24: FOR loop not properly closed with ENDFOR, starting from line 31
+Error on line 27: Function not properly closed with ENDFUNCTION, starting from line 31
+Error on line 29: Invalid FOR loop on line 29:     FOR i FROM 0 TO size - 1 DO
+Error on line 30: Invalid expression: 0 + arr[1]. Error: 'NoneType' object is not subscriptable
+Error on line 3: Invalid expression: The 30 of (10 + 5) * 2 is:. Error: invalid syntax (<string>, line 1)
+30
+Error on line 1: Invalid expression: Adding two [10, 20, 30, 40, 50]:. Error: invalid syntax (<string>, line 1)
+12
+Error on line 23: Invalid expression: Array elements:. Error: invalid syntax (<string>, line 1)
+Error on line 24: FOR loop not properly closed with ENDFOR, starting from line 31
+Error on line 27: Function not properly closed with ENDFUNCTION, starting from line 31
+Error on line 29: Invalid FOR loop on line 29:     FOR i FROM 0 TO size - 1 DO
+Error on line 30: Invalid expression: 0 + arr[2]. Error: 'NoneType' object is not subscriptable
+Error on line 3: Invalid expression: The 30 of (10 + 5) * 2 is:. Error: invalid syntax (<string>, line 1)
+30
+Error on line 1: Invalid expression: Adding two [10, 20, 30, 40, 50]:. Error: invalid syntax (<string>, line 1)
+12
+Error on line 23: Invalid expression: Array elements:. Error: invalid syntax (<string>, line 1)
+Error on line 24: FOR loop not properly closed with ENDFOR, starting from line 31
+Error on line 27: Function not properly closed with ENDFUNCTION, starting from line 31
+Error on line 29: Invalid FOR loop on line 29:     FOR i FROM 0 TO size - 1 DO
+Error on line 30: Invalid expression: 0 + arr[3]. Error: 'NoneType' object is not subscriptable
+Error on line 55: Invalid expression: Sum of array elements:. Error: invalid syntax (<string>, line 1)
+0
+Error on line 57: Unsupported command: ENDFUNCTION
+Error on line 59: Function 'array_sum' is not defined
