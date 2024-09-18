@@ -6,7 +6,6 @@ import os
 app = Flask(__name__)
 interpreter = PseudocodeInterpreter()
 
-# Ensure the snippets directory exists
 if not os.path.exists('snippets'):
     os.makedirs('snippets')
 
@@ -131,6 +130,27 @@ def load_snippet(snippet_name):
 def list_snippets():
     snippets = [f.split('.')[0] for f in os.listdir('snippets') if f.endswith('.json')]
     return jsonify({'snippets': snippets})
+
+@app.route('/test_consistency', methods=['POST'])
+def test_consistency():
+    pseudocode = request.json.get('pseudocode', '')
+    
+    full_result = interpreter.interpret(pseudocode)
+    
+    interpreter.reset_execution()
+    interpreter.interpret(pseudocode)
+    step_result = []
+    while True:
+        step = interpreter.get_next_step()
+        if step is None:
+            break
+        if step['output'] is not None:
+            step_result.append(step['output'])
+    
+    return jsonify({
+        'full_result': full_result,
+        'step_result': '\n'.join(step_result)
+    })
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

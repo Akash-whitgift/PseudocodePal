@@ -154,4 +154,38 @@ document.addEventListener('DOMContentLoaded', () => {
             outputDiv.innerHTML = `<span class="error">Failed to load snippet: ${error.message}</span>`;
         }
     });
+
+    const testConsistencyButton = document.createElement('button');
+    testConsistencyButton.textContent = 'Test Consistency';
+    document.querySelector('.button-container').appendChild(testConsistencyButton);
+
+    testConsistencyButton.addEventListener('click', async () => {
+        const pseudocode = pseudocodeEditor.textContent;
+        
+        try {
+            const response = await fetch('/test_consistency', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ pseudocode }),
+            });
+
+            const data = await response.json();
+            outputDiv.innerHTML = `
+                <h3>Full Interpretation Result:</h3>
+                <pre>${data.full_result}</pre>
+                <h3>Step-by-Step Execution Result:</h3>
+                <pre>${data.step_result}</pre>
+            `;
+
+            if (data.full_result === data.step_result) {
+                outputDiv.innerHTML += '<p style="color: green;">Results are consistent!</p>';
+            } else {
+                outputDiv.innerHTML += '<p style="color: red;">Inconsistency detected!</p>';
+            }
+        } catch (error) {
+            outputDiv.innerHTML = `<span class="error">An error occurred: ${error.message}</span>`;
+        }
+    });
 });

@@ -273,3 +273,4 @@ class PseudocodeInterpreter:
     def reset_execution(self):
         self.current_step = 0
         self.variables = {}
+        self.functions = {}
