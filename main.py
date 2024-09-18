@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from pseudocode_interpreter import PseudocodeInterpreter
 
 app = Flask(__name__)
+interpreter = PseudocodeInterpreter()
 
 @app.route('/')
 def index():
@@ -10,12 +11,26 @@ def index():
 @app.route('/interpret', methods=['POST'])
 def interpret():
     pseudocode = request.json.get('pseudocode', '')
-    interpreter = PseudocodeInterpreter()
     try:
         result = interpreter.interpret(pseudocode)
         return jsonify({'result': result, 'error': None})
     except Exception as e:
         return jsonify({'result': None, 'error': str(e)})
+
+@app.route('/start_execution', methods=['POST'])
+def start_execution():
+    pseudocode = request.json.get('pseudocode', '')
+    interpreter.interpret(pseudocode)
+    interpreter.reset_execution()
+    return jsonify({'message': 'Execution started'})
+
+@app.route('/next_step', methods=['GET'])
+def next_step():
+    step = interpreter.get_next_step()
+    if step:
+        return jsonify(step)
+    else:
+        return jsonify({'message': 'Execution completed'})
 
 @app.route('/example')
 def example():

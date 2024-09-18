@@ -4,8 +4,12 @@ class PseudocodeInterpreter:
     def __init__(self):
         self.variables = {}
         self.functions = {}
+        self.execution_steps = []
+        self.current_step = 0
 
     def interpret(self, pseudocode):
+        self.execution_steps = []
+        self.current_step = 0
         lines = pseudocode.split('\n')
         output = []
         i = 0
@@ -23,10 +27,19 @@ class PseudocodeInterpreter:
 
     def execute_line(self, lines, i):
         line = lines[i].strip()
+        self.execution_steps.append({
+            'line': line,
+            'variables': self.variables.copy(),
+            'output': None
+        })
+        
         if line.startswith('PRINT'):
-            return self.print_statement(line), i
+            result = self.print_statement(line)
+            self.execution_steps[-1]['output'] = result
+            return result, i
         elif '=' in line:
-            return self.assignment(line), i
+            self.assignment(line)
+            return None, i
         elif line.startswith('IF'):
             return self.if_statement(lines, i)
         elif line.startswith('FOR'):
@@ -36,9 +49,12 @@ class PseudocodeInterpreter:
         elif line.startswith('FUNCTION'):
             return self.function_definition(lines, i)
         elif line.startswith('CALL'):
-            return self.function_call(line), i
+            result = self.function_call(line)
+            self.execution_steps[-1]['output'] = result
+            return result, i
         elif line.startswith('ARRAY'):
-            return self.array_declaration(line), i
+            self.array_declaration(line)
+            return None, i
         else:
             raise ValueError(f"Unsupported command: {line}")
 
@@ -195,13 +211,11 @@ class PseudocodeInterpreter:
         if len(args) != len(func['params']):
             raise ValueError(f"Function '{func_name}' expects {len(func['params'])} arguments, but {len(args)} were given")
         
-        # Create a new scope for the function
         old_variables = self.variables.copy()
         self.variables.update(dict(zip(func['params'], args)))
         
         result = self.interpret('\n'.join(func['body']))
         
-        # Restore the old scope
         self.variables = old_variables
         
         return result
@@ -216,11 +230,9 @@ class PseudocodeInterpreter:
 
     def evaluate_expression(self, expression):
         try:
-            # Handle string literals
             if expression.startswith('"') and expression.endswith('"'):
-                return expression[1:-1]  # Remove quotes for string literals
+                return expression[1:-1]
             
-            # Handle array access
             array_access = re.match(r'(\w+)\[(.+)\]', expression)
             if array_access:
                 array_name, index = array_access.groups()
@@ -233,11 +245,9 @@ class PseudocodeInterpreter:
                     raise ValueError(f"Index {index} is out of bounds for array '{array_name}'")
                 return self.variables[array_name][index]
             
-            # Replace variable names with their values
             for var, value in self.variables.items():
                 expression = re.sub(r'\b' + var + r'\b', str(value), expression)
             
-            # Evaluate basic arithmetic operations and comparisons
             return eval(expression, {"__builtins__": None}, {
                 "+": lambda x, y: x + y,
                 "-": lambda x, y: x - y,
@@ -252,3 +262,14 @@ class PseudocodeInterpreter:
             })
         except Exception as e:
             raise ValueError(f"Invalid expression: {expression}. Error: {str(e)}")
+
+    def get_next_step(self):
+        if self.current_step < len(self.execution_steps):
+            step = self.execution_steps[self.current_step]
+            self.current_step += 1
+            return step
+        return None
+
+    def reset_execution(self):
+        self.current_step = 0
+        self.variables = {}
