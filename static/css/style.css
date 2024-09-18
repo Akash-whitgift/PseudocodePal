@@ -20,19 +20,20 @@ h1 {
     color: #333;
 }
 
-textarea {
-    width: 100%;
-    height: 200px;
-    margin-bottom: 10px;
-    padding: 10px;
+.CodeMirror {
     border: 1px solid #ddd;
     border-radius: 5px;
-    resize: vertical;
+    height: 300px;
+    margin-bottom: 10px;
+}
+
+.button-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
 }
 
 button {
-    display: block;
-    width: 100%;
     padding: 10px;
     background-color: #007bff;
     color: #fff;
@@ -40,6 +41,8 @@ button {
     border-radius: 5px;
     cursor: pointer;
     font-size: 16px;
+    flex: 1;
+    margin: 0 5px;
 }
 
 button:hover {
@@ -59,4 +62,9 @@ button:hover {
 .error {
     color: #dc3545;
     font-weight: bold;
+}
+
+/* Ensure CodeMirror is visible */
+.CodeMirror-scroll {
+    min-height: 300px;
 }
