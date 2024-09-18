@@ -104,7 +104,7 @@ class PseudocodeInterpreter:
         if '[' in variable:  # Array assignment
             array_name, index = re.match(r'(\w+)\[(.+)\]', variable).groups()
             index = int(self.evaluate_expression(index))
-            array = self.current_scope.get(array_name)
+            array = self.get_variable(array_name)
             if not isinstance(array, list):
                 raise ValueError(f"'{array_name}' is not an array")
             if index < 0 or index >= len(array):
@@ -301,7 +301,7 @@ class PseudocodeInterpreter:
             if array_access:
                 array_name, index = array_access.groups()
                 index = int(self.evaluate_expression(index))
-                array = self.current_scope.get(array_name)
+                array = self.get_variable(array_name)
                 if not isinstance(array, list):
                     raise ValueError(f"'{array_name}' is not an array")
                 if index < 0 or index >= len(array):
@@ -363,4 +363,4 @@ class PseudocodeInterpreter:
         if self.loop_stack:
             loop_type, var, iteration = self.loop_stack[-1]
             return f"In {loop_type} loop, variable '{var}', iteration {iteration}"
-        return "Not in a loop"
+        return "Not currently in a loop"
