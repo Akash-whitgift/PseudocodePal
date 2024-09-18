@@ -139,6 +139,7 @@ class PseudocodeInterpreter:
             raise ValueError(f"IF statement not properly closed with ENDIF, starting from line {i + 1}")
         
         if_scope = Scope(self.current_scope)
+        old_scope = self.current_scope
         self.current_scope = if_scope
         
         if self.evaluate_expression(condition):
@@ -146,7 +147,7 @@ class PseudocodeInterpreter:
         else:
             result = self.interpret('\n'.join(false_block))
         
-        self.current_scope = self.current_scope.parent
+        self.current_scope = old_scope
         return result, i - 1
 
     def for_loop(self, lines, i):
