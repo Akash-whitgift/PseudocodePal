@@ -7,11 +7,13 @@ class PseudocodeInterpreter:
         self.execution_steps = []
         self.current_step = 0
         self.output = []
+        self.loop_depth = 0
 
     def interpret(self, pseudocode):
         self.execution_steps = []
         self.current_step = 0
         self.output = []
+        self.loop_depth = 0
         lines = pseudocode.split('\n')
         i = 0
         while i < len(lines):
@@ -62,6 +64,8 @@ class PseudocodeInterpreter:
         elif line.startswith('ARRAY'):
             self.array_declaration(line)
             return None, i
+        elif line == 'ENDFOR' or line == 'ENDWHILE' or line == 'ENDIF' or line == 'ENDFUNCTION':
+            return None, i  # Treat these as no-ops when encountered directly
         else:
             raise ValueError(f"Unsupported command: {line}")
 
@@ -128,14 +132,22 @@ class PseudocodeInterpreter:
         var, start, end = match.groups()
         i += 1
         loop_block = []
+        self.loop_depth += 1
         
-        while i < len(lines) and not lines[i].strip().startswith('ENDFOR'):
+        while i < len(lines):
+            if lines[i].strip() == 'ENDFOR':
+                if self.loop_depth == 1:
+                    i += 1
+                    break
+                else:
+                    self.loop_depth -= 1
             loop_block.append(lines[i])
             i += 1
         
-        if i < len(lines) and lines[i].strip().startswith('ENDFOR'):
-            i += 1
-        else:
+        if self.loop_depth > 0:
+            self.loop_depth -= 1
+        
+        if i == len(lines) and self.loop_depth > 0:
             raise ValueError(f"FOR loop not properly closed with ENDFOR, starting from line {i + 1}")
         
         start_value = int(self.evaluate_expression(start))
@@ -157,14 +169,22 @@ class PseudocodeInterpreter:
         condition = condition_match.group(1)
         i += 1
         loop_block = []
+        self.loop_depth += 1
         
-        while i < len(lines) and not lines[i].strip().startswith('ENDWHILE'):
+        while i < len(lines):
+            if lines[i].strip() == 'ENDWHILE':
+                if self.loop_depth == 1:
+                    i += 1
+                    break
+                else:
+                    self.loop_depth -= 1
             loop_block.append(lines[i])
             i += 1
         
-        if i < len(lines) and lines[i].strip().startswith('ENDWHILE'):
-            i += 1
-        else:
+        if self.loop_depth > 0:
+            self.loop_depth -= 1
+        
+        if i == len(lines) and self.loop_depth > 0:
             raise ValueError(f"WHILE loop not properly closed with ENDWHILE, starting from line {i + 1}")
         
         output = []
