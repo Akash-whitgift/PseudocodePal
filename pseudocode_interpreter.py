@@ -6,12 +6,13 @@ class PseudocodeInterpreter:
         self.functions = {}
         self.execution_steps = []
         self.current_step = 0
+        self.output = []
 
     def interpret(self, pseudocode):
         self.execution_steps = []
         self.current_step = 0
+        self.output = []
         lines = pseudocode.split('\n')
-        output = []
         i = 0
         while i < len(lines):
             line = lines[i].strip()
@@ -19,11 +20,17 @@ class PseudocodeInterpreter:
                 try:
                     result, i = self.execute_line(lines, i)
                     if result is not None:
-                        output.append(result)
+                        self.output.append(result)
                 except Exception as e:
-                    output.append(f"Error on line {i + 1}: {str(e)}")
+                    error_msg = f"Error on line {i + 1}: {str(e)}"
+                    self.output.append(error_msg)
+                    self.execution_steps.append({
+                        'line': line,
+                        'variables': self.variables.copy(),
+                        'output': error_msg
+                    })
             i += 1
-        return '\n'.join(output)
+        return '\n'.join(self.output)
 
     def execute_line(self, lines, i):
         line = lines[i].strip()
@@ -64,10 +71,8 @@ class PseudocodeInterpreter:
             content = match.group(1)
             if content.startswith('"') and content.endswith('"'):
                 return content[1:-1]  # Remove quotes for string literals
-            elif any(op in content for op in ['+', '-', '*', '/', '<', '>', '<=', '>=', '==', '!=']):
-                return str(self.evaluate_expression(content))
             else:
-                return content  # Return as-is for non-expression content
+                return str(self.evaluate_expression(content))
         raise ValueError(f"Invalid PRINT statement: {line}")
 
     def assignment(self, line):
@@ -274,3 +279,4 @@ class PseudocodeInterpreter:
         self.current_step = 0
         self.variables = {}
         self.functions = {}
+        self.output = []

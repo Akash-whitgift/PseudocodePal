@@ -45,31 +45,33 @@ x = 10
 y = 5
 
 IF x > y THEN
-    PRINT x is greater than y
+    PRINT "x is greater than y"
 ELSE
-    PRINT y is greater than or equal to x
+    PRINT "y is greater than or equal to x"
 ENDIF
 
-PRINT The value of x is
+PRINT "The value of x is"
 PRINT x
 
 count = 0
 WHILE count < 5
-    PRINT Current count:
+    PRINT "Current count:"
     PRINT count
     count = count + 1
 ENDWHILE
 
-PRINT Counting from 1 to 3:
-FOR i FROM 1 TO 3 DO PRINT i
+PRINT "Counting from 1 to 3:"
+FOR i FROM 1 TO 3 DO
+    PRINT i
+ENDFOR
 
 result = (x + y) * 2
-PRINT The result of (x + y) * 2 is:
+PRINT "The result of (x + y) * 2 is:"
 PRINT result
 
 # Function definition
 FUNCTION add(a, b)
-    PRINT Adding two numbers:
+    PRINT "Adding two numbers:"
     PRINT a + b
 ENDFUNCTION
 
@@ -84,8 +86,10 @@ numbers[2] = 30
 numbers[3] = 40
 numbers[4] = 50
 
-PRINT Array elements:
-FOR i FROM 0 TO 4 DO PRINT numbers[i]
+PRINT "Array elements:"
+FOR i FROM 0 TO 4 DO
+    PRINT numbers[i]
+ENDFOR
 
 # Function to calculate sum of array elements
 FUNCTION array_sum(arr, size)
@@ -93,7 +97,7 @@ FUNCTION array_sum(arr, size)
     FOR i FROM 0 TO size - 1 DO
         sum = sum + arr[i]
     ENDFOR
-    PRINT Sum of array elements:
+    PRINT "Sum of array elements:"
     PRINT sum
 ENDFUNCTION
 
@@ -135,21 +139,41 @@ def list_snippets():
 def test_consistency():
     pseudocode = request.json.get('pseudocode', '')
     
+    # Full interpretation
     full_result = interpreter.interpret(pseudocode)
+    full_output = interpreter.output
+    full_variables = interpreter.variables.copy()
     
+    # Step-by-step execution
     interpreter.reset_execution()
     interpreter.interpret(pseudocode)
     step_result = []
+    step_output = []
+    step_variables = {}
+    
     while True:
         step = interpreter.get_next_step()
         if step is None:
             break
         if step['output'] is not None:
             step_result.append(step['output'])
+        step_output.append(step['output'])
+        step_variables = step['variables']
+    
+    # Compare results
+    consistency = {
+        'output_match': full_output == step_output,
+        'variable_match': full_variables == step_variables,
+        'full_output': full_output,
+        'step_output': step_output,
+        'full_variables': full_variables,
+        'step_variables': step_variables
+    }
     
     return jsonify({
         'full_result': full_result,
-        'step_result': '\n'.join(step_result)
+        'step_result': '\n'.join(step_result),
+        'consistency': consistency
     })
 
 if __name__ == '__main__':
