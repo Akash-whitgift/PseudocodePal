@@ -45,7 +45,7 @@ class PseudocodeInterpreter:
                     self.output.append(error_msg)
                     self.execution_steps.append({
                         'line': line,
-                        'variables': self.current_scope.variables.copy(),
+                        'variables': self.get_all_variables(),
                         'output': error_msg
                     })
             i += 1
@@ -55,7 +55,7 @@ class PseudocodeInterpreter:
         line = lines[i].strip()
         self.execution_steps.append({
             'line': line,
-            'variables': self.current_scope.variables.copy(),
+            'variables': self.get_all_variables(),
             'output': None
         })
         
@@ -138,11 +138,15 @@ class PseudocodeInterpreter:
         else:
             raise ValueError(f"IF statement not properly closed with ENDIF, starting from line {i + 1}")
         
+        if_scope = Scope(self.current_scope)
+        self.current_scope = if_scope
+        
         if self.evaluate_expression(condition):
             result = self.interpret('\n'.join(true_block))
         else:
             result = self.interpret('\n'.join(false_block))
         
+        self.current_scope = self.current_scope.parent
         return result, i - 1
 
     def for_loop(self, lines, i):
@@ -178,7 +182,7 @@ class PseudocodeInterpreter:
             loop_scope.set(var, j)
             old_scope = self.current_scope
             self.current_scope = loop_scope
-            self.loop_stack.append(('FOR', var))
+            self.loop_stack.append(('FOR', var, j))
             result = self.interpret('\n'.join(loop_block))
             if result:
                 output.append(result)
@@ -212,16 +216,18 @@ class PseudocodeInterpreter:
             raise ValueError(f"WHILE loop not properly closed with ENDWHILE, starting from line {i + 1}")
         
         output = []
+        iteration = 0
         while self.evaluate_expression(condition):
             loop_scope = Scope(self.current_scope)
             old_scope = self.current_scope
             self.current_scope = loop_scope
-            self.loop_stack.append(('WHILE', None))
+            self.loop_stack.append(('WHILE', None, iteration))
             result = self.interpret('\n'.join(loop_block))
             if result:
                 output.append(result)
             self.loop_stack.pop()
             self.current_scope = old_scope
+            iteration += 1
         
         return '\n'.join(output), i - 1
 
@@ -302,8 +308,8 @@ class PseudocodeInterpreter:
                 return array[index]
             
             for var in re.findall(r'\b[a-zA-Z_]\w*\b', expression):
-                if var in self.current_scope.variables:
-                    expression = re.sub(r'\b' + var + r'\b', str(self.current_scope.get(var)), expression)
+                if var in self.get_all_variables():
+                    expression = re.sub(r'\b' + var + r'\b', str(self.get_variable(var)), expression)
             
             return eval(expression, {"__builtins__": None}, {
                 "+": lambda x, y: x + y,
@@ -318,7 +324,8 @@ class PseudocodeInterpreter:
                 "!=": lambda x, y: x != y,
             })
         except Exception as e:
-            raise ValueError(f"Invalid expression: {expression}. Error: {str(e)}")
+            loop_info = self.get_loop_info()
+            raise ValueError(f"Invalid expression: {expression}. Error: {str(e)}. {loop_info}")
 
     def get_next_step(self):
         if self.current_step < len(self.execution_steps):
@@ -334,3 +341,25 @@ class PseudocodeInterpreter:
         self.functions = {}
         self.output = []
         self.loop_stack = []
+
+    def get_all_variables(self):
+        variables = {}
+        scope = self.current_scope
+        while scope:
+            variables.update(scope.variables)
+            scope = scope.parent
+        return variables
+
+    def get_variable(self, name):
+        scope = self.current_scope
+        while scope:
+            if name in scope.variables:
+                return scope.variables[name]
+            scope = scope.parent
+        raise ValueError(f"Variable '{name}' is not defined")
+
+    def get_loop_info(self):
+        if self.loop_stack:
+            loop_type, var, iteration = self.loop_stack[-1]
+            return f"In {loop_type} loop, variable '{var}', iteration {iteration}"
+        return "Not in a loop"
