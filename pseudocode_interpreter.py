@@ -1,8 +1,24 @@
 import re
 
+class Scope:
+    def __init__(self, parent=None):
+        self.variables = {}
+        self.parent = parent
+
+    def get(self, name):
+        if name in self.variables:
+            return self.variables[name]
+        elif self.parent:
+            return self.parent.get(name)
+        raise ValueError(f"Variable '{name}' is not defined")
+
+    def set(self, name, value):
+        self.variables[name] = value
+
 class PseudocodeInterpreter:
     def __init__(self):
-        self.variables = {}
+        self.global_scope = Scope()
+        self.current_scope = self.global_scope
         self.functions = {}
         self.execution_steps = []
         self.current_step = 0
@@ -14,6 +30,7 @@ class PseudocodeInterpreter:
         self.current_step = 0
         self.output = []
         self.loop_stack = []
+        self.current_scope = self.global_scope
         lines = pseudocode.split('\n')
         i = 0
         while i < len(lines):
@@ -28,7 +45,7 @@ class PseudocodeInterpreter:
                     self.output.append(error_msg)
                     self.execution_steps.append({
                         'line': line,
-                        'variables': self.variables.copy(),
+                        'variables': self.current_scope.variables.copy(),
                         'output': error_msg
                     })
             i += 1
@@ -38,7 +55,7 @@ class PseudocodeInterpreter:
         line = lines[i].strip()
         self.execution_steps.append({
             'line': line,
-            'variables': self.variables.copy(),
+            'variables': self.current_scope.variables.copy(),
             'output': None
         })
         
@@ -67,6 +84,7 @@ class PseudocodeInterpreter:
         elif line in ['ENDFOR', 'ENDWHILE', 'ENDIF', 'ENDFUNCTION']:
             if self.loop_stack and self.loop_stack[-1][0] == line[3:]:
                 self.loop_stack.pop()
+                self.current_scope = self.current_scope.parent
             return None, i
         else:
             raise ValueError(f"Unsupported command: {line}")
@@ -86,13 +104,14 @@ class PseudocodeInterpreter:
         if '[' in variable:  # Array assignment
             array_name, index = re.match(r'(\w+)\[(.+)\]', variable).groups()
             index = int(self.evaluate_expression(index))
-            if array_name not in self.variables or not isinstance(self.variables[array_name], list):
-                raise ValueError(f"Array '{array_name}' is not defined or is not an array")
-            if index < 0 or index >= len(self.variables[array_name]):
+            array = self.current_scope.get(array_name)
+            if not isinstance(array, list):
+                raise ValueError(f"'{array_name}' is not an array")
+            if index < 0 or index >= len(array):
                 raise ValueError(f"Index {index} is out of bounds for array '{array_name}'")
-            self.variables[array_name][index] = self.evaluate_expression(expression)
+            array[index] = self.evaluate_expression(expression)
         else:
-            self.variables[variable] = self.evaluate_expression(expression)
+            self.current_scope.set(variable, self.evaluate_expression(expression))
 
     def if_statement(self, lines, i):
         condition_match = re.match(r'IF\s+(.+)\s+THEN', lines[i])
@@ -151,17 +170,15 @@ class PseudocodeInterpreter:
         start_value = int(self.evaluate_expression(start))
         end_value = int(self.evaluate_expression(end))
         output = []
-        old_var_value = self.variables.get(var)
+        
         for j in range(start_value, end_value + 1):
-            self.variables[var] = j
+            loop_scope = Scope(self.current_scope)
+            loop_scope.set(var, j)
+            self.current_scope = loop_scope
             result = self.interpret('\n'.join(loop_block))
             if result:
                 output.append(result)
-        
-        if old_var_value is not None:
-            self.variables[var] = old_var_value
-        else:
-            del self.variables[var]
+            self.current_scope = self.current_scope.parent
         
         return '\n'.join(output), i - 1
 
@@ -189,9 +206,12 @@ class PseudocodeInterpreter:
         
         output = []
         while self.evaluate_expression(condition):
+            loop_scope = Scope(self.current_scope)
+            self.current_scope = loop_scope
             result = self.interpret('\n'.join(loop_block))
             if result:
                 output.append(result)
+            self.current_scope = self.current_scope.parent
         
         return '\n'.join(output), i - 1
 
@@ -240,12 +260,14 @@ class PseudocodeInterpreter:
         if len(args) != len(func['params']):
             raise ValueError(f"Function '{func_name}' expects {len(func['params'])} arguments, but {len(args)} were given")
         
-        old_variables = self.variables.copy()
-        self.variables.update(dict(zip(func['params'], args)))
+        func_scope = Scope(self.current_scope)
+        for param, arg in zip(func['params'], args):
+            func_scope.set(param, arg)
         
+        old_scope = self.current_scope
+        self.current_scope = func_scope
         result = self.interpret('\n'.join(func['body']))
-        
-        self.variables = old_variables
+        self.current_scope = old_scope
         
         return result
 
@@ -255,7 +277,7 @@ class PseudocodeInterpreter:
             raise ValueError(f"Invalid array declaration: {line}")
         
         array_name, size = match.groups()
-        self.variables[array_name] = [0] * int(size)
+        self.current_scope.set(array_name, [0] * int(size))
 
     def evaluate_expression(self, expression):
         try:
@@ -266,16 +288,16 @@ class PseudocodeInterpreter:
             if array_access:
                 array_name, index = array_access.groups()
                 index = int(self.evaluate_expression(index))
-                if array_name not in self.variables:
-                    raise ValueError(f"Array '{array_name}' is not defined")
-                if not isinstance(self.variables[array_name], list):
+                array = self.current_scope.get(array_name)
+                if not isinstance(array, list):
                     raise ValueError(f"'{array_name}' is not an array")
-                if index < 0 or index >= len(self.variables[array_name]):
+                if index < 0 or index >= len(array):
                     raise ValueError(f"Index {index} is out of bounds for array '{array_name}'")
-                return self.variables[array_name][index]
+                return array[index]
             
-            for var, value in self.variables.items():
-                expression = re.sub(r'\b' + var + r'\b', str(value), expression)
+            for var in re.findall(r'\b[a-zA-Z_]\w*\b', expression):
+                if var in self.current_scope.variables:
+                    expression = re.sub(r'\b' + var + r'\b', str(self.current_scope.get(var)), expression)
             
             return eval(expression, {"__builtins__": None}, {
                 "+": lambda x, y: x + y,
@@ -301,7 +323,8 @@ class PseudocodeInterpreter:
 
     def reset_execution(self):
         self.current_step = 0
-        self.variables = {}
+        self.global_scope = Scope()
+        self.current_scope = self.global_scope
         self.functions = {}
         self.output = []
         self.loop_stack = []
