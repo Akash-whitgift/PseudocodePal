@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadExampleButton = document.getElementById('load-example');
     const startExecutionButton = document.getElementById('start-execution');
     const nextStepButton = document.getElementById('next-step');
+    const saveSnippetButton = document.getElementById('save-snippet');
+    const loadSnippetButton = document.getElementById('load-snippet');
     const outputDiv = document.getElementById('output');
     const variableStateDiv = document.getElementById('variable-state');
 
@@ -98,4 +100,58 @@ document.addEventListener('DOMContentLoaded', () => {
             variableStateDiv.innerHTML += `<p>${key}: ${JSON.stringify(value)}</p>`;
         }
     }
+
+    saveSnippetButton.addEventListener('click', async () => {
+        const snippetName = prompt('Enter a name for this snippet:');
+        if (snippetName) {
+            const pseudocode = pseudocodeEditor.textContent;
+            try {
+                const response = await fetch('/save_snippet', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name: snippetName, code: pseudocode }),
+                });
+
+                const data = await response.json();
+                if (data.error) {
+                    outputDiv.innerHTML = `<span class="error">Error: ${data.error}</span>`;
+                } else {
+                    outputDiv.textContent = 'Snippet saved successfully';
+                }
+            } catch (error) {
+                outputDiv.innerHTML = `<span class="error">Failed to save snippet: ${error.message}</span>`;
+            }
+        }
+    });
+
+    loadSnippetButton.addEventListener('click', async () => {
+        try {
+            const response = await fetch('/list_snippets');
+            const data = await response.json();
+            const snippets = data.snippets;
+
+            if (snippets.length === 0) {
+                outputDiv.textContent = 'No snippets available';
+                return;
+            }
+
+            const snippetName = prompt('Enter the name of the snippet to load:\n\nAvailable snippets:\n' + snippets.join('\n'));
+            if (snippetName) {
+                const loadResponse = await fetch(`/load_snippet/${snippetName}`);
+                const snippetData = await loadResponse.json();
+
+                if (snippetData.error) {
+                    outputDiv.innerHTML = `<span class="error">Error: ${snippetData.error}</span>`;
+                } else {
+                    pseudocodeEditor.textContent = snippetData.code;
+                    updateSyntaxHighlighting();
+                    outputDiv.textContent = 'Snippet loaded successfully';
+                }
+            }
+        } catch (error) {
+            outputDiv.innerHTML = `<span class="error">Failed to load snippet: ${error.message}</span>`;
+        }
+    });
 });

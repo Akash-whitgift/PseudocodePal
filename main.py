@@ -1,8 +1,14 @@
 from flask import Flask, render_template, request, jsonify
 from pseudocode_interpreter import PseudocodeInterpreter
+import json
+import os
 
 app = Flask(__name__)
 interpreter = PseudocodeInterpreter()
+
+# Ensure the snippets directory exists
+if not os.path.exists('snippets'):
+    os.makedirs('snippets')
 
 @app.route('/')
 def index():
@@ -95,6 +101,36 @@ ENDFUNCTION
 CALL array_sum(numbers, 5)
 """
     return jsonify({'example': example_code})
+
+@app.route('/save_snippet', methods=['POST'])
+def save_snippet():
+    data = request.json
+    snippet_name = data.get('name')
+    snippet_code = data.get('code')
+    
+    if not snippet_name or not snippet_code:
+        return jsonify({'error': 'Name and code are required'}), 400
+    
+    filename = f"snippets/{snippet_name}.json"
+    with open(filename, 'w') as f:
+        json.dump({'name': snippet_name, 'code': snippet_code}, f)
+    
+    return jsonify({'message': 'Snippet saved successfully'})
+
+@app.route('/load_snippet/<snippet_name>', methods=['GET'])
+def load_snippet(snippet_name):
+    filename = f"snippets/{snippet_name}.json"
+    try:
+        with open(filename, 'r') as f:
+            snippet = json.load(f)
+        return jsonify(snippet)
+    except FileNotFoundError:
+        return jsonify({'error': 'Snippet not found'}), 404
+
+@app.route('/list_snippets', methods=['GET'])
+def list_snippets():
+    snippets = [f.split('.')[0] for f in os.listdir('snippets') if f.endswith('.json')]
+    return jsonify({'snippets': snippets})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
