@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const variableStateDiv = document.getElementById('variable-state');
 
     function updateSyntaxHighlighting() {
-        pseudocodeEditor.innerHTML = pseudocodeEditor.textContent;
         Prism.highlightElement(pseudocodeEditor);
     }
 

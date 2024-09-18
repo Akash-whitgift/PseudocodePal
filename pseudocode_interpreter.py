@@ -174,11 +174,12 @@ class PseudocodeInterpreter:
         for j in range(start_value, end_value + 1):
             loop_scope = Scope(self.current_scope)
             loop_scope.set(var, j)
+            old_scope = self.current_scope
             self.current_scope = loop_scope
             result = self.interpret('\n'.join(loop_block))
             if result:
                 output.append(result)
-            self.current_scope = self.current_scope.parent
+            self.current_scope = old_scope
         
         return '\n'.join(output), i - 1
 
@@ -207,11 +208,12 @@ class PseudocodeInterpreter:
         output = []
         while self.evaluate_expression(condition):
             loop_scope = Scope(self.current_scope)
+            old_scope = self.current_scope
             self.current_scope = loop_scope
             result = self.interpret('\n'.join(loop_block))
             if result:
                 output.append(result)
-            self.current_scope = self.current_scope.parent
+            self.current_scope = old_scope
         
         return '\n'.join(output), i - 1
 
