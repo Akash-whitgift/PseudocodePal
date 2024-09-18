@@ -1,11 +1,24 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const pseudocodeInput = document.getElementById('pseudocode');
+    const pseudocodeEditor = document.getElementById('pseudocode');
     const interpretButton = document.getElementById('interpret');
     const loadExampleButton = document.getElementById('load-example');
     const outputDiv = document.getElementById('output');
 
+    function updateSyntaxHighlighting() {
+        // Remove existing highlighted content
+        pseudocodeEditor.innerHTML = pseudocodeEditor.textContent;
+        // Apply Prism highlighting
+        Prism.highlightElement(pseudocodeEditor);
+    }
+
+    // Initialize syntax highlighting
+    updateSyntaxHighlighting();
+
+    // Update syntax highlighting on input
+    pseudocodeEditor.addEventListener('input', updateSyntaxHighlighting);
+
     interpretButton.addEventListener('click', async () => {
-        const pseudocode = pseudocodeInput.value;
+        const pseudocode = pseudocodeEditor.textContent;
         
         try {
             const response = await fetch('/interpret', {
@@ -32,7 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/example');
             const data = await response.json();
-            pseudocodeInput.value = data.example;
+            pseudocodeEditor.textContent = data.example;
+            updateSyntaxHighlighting();
         } catch (error) {
             outputDiv.innerHTML = `<span class="error">Failed to load example: ${error.message}</span>`;
         }

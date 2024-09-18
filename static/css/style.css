@@ -20,19 +20,34 @@ h1 {
     color: #333;
 }
 
-textarea {
-    width: 100%;
-    height: 200px;
+#editor {
     margin-bottom: 10px;
-    padding: 10px;
     border: 1px solid #ddd;
     border-radius: 5px;
+    overflow: hidden;
+}
+
+#pseudocode {
+    width: 100%;
+    height: 200px;
+    padding: 10px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    line-height: 1.5;
     resize: vertical;
+    overflow: auto;
+    white-space: pre-wrap;
+    outline: none;
+    background-color: #f8f8f8;
+}
+
+.button-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
 }
 
 button {
-    display: block;
-    width: 100%;
     padding: 10px;
     background-color: #007bff;
     color: #fff;
@@ -40,6 +55,8 @@ button {
     border-radius: 5px;
     cursor: pointer;
     font-size: 16px;
+    flex: 1;
+    margin: 0 5px;
 }
 
 button:hover {
@@ -59,4 +76,61 @@ button:hover {
 .error {
     color: #dc3545;
     font-weight: bold;
+}
+
+/* Prism.js theme customization */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+    color: #998;
+    font-style: italic;
+}
+
+.token.punctuation {
+    color: #333;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted {
+    color: #905;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+    color: #690;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+    color: #9a6e3a;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+    color: #07a;
+}
+
+.token.function,
+.token.class-name {
+    color: #DD4A68;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+    color: #e90;
 }

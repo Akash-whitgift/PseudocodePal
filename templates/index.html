@@ -5,17 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pseudocode Interpreter</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/line-numbers/prism-line-numbers.min.css">
 </head>
 <body>
     <div class="container">
         <h1>Pseudocode Interpreter</h1>
-        <textarea id="pseudocode" placeholder="Enter your pseudocode here..."></textarea>
+        <div id="editor">
+            <pre class="line-numbers"><code id="pseudocode" class="language-pseudocode" contenteditable="true" spellcheck="false"></code></pre>
+        </div>
         <div class="button-container">
             <button id="load-example">Load Example</button>
             <button id="interpret">Interpret</button>
         </div>
         <div id="output"></div>
     </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="{{ url_for('static', filename='js/prism-pseudocode.js') }}"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
