@@ -4,22 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadExampleButton = document.getElementById('load-example');
     const outputDiv = document.getElementById('output');
 
-    // Add a visible message to confirm JavaScript is loading
-    outputDiv.textContent = "JavaScript loaded successfully!";
-
-    // Initialize CodeMirror
-    const editor = CodeMirror.fromTextArea(pseudocodeInput, {
-        mode: "text/x-pseudocode",
-        theme: "monokai",  // Changed theme for better visibility
-        lineNumbers: true,
-        indentUnit: 4,
-        tabSize: 4,
-        autofocus: true,
-        lineWrapping: true
-    });
-
     interpretButton.addEventListener('click', async () => {
-        const pseudocode = editor.getValue();
+        const pseudocode = pseudocodeInput.value;
         
         try {
             const response = await fetch('/interpret', {
@@ -46,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/example');
             const data = await response.json();
-            editor.setValue(data.example);
+            pseudocodeInput.value = data.example;
         } catch (error) {
             outputDiv.innerHTML = `<span class="error">Failed to load example: ${error.message}</span>`;
         }
