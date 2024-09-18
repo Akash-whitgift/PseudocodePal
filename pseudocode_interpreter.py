@@ -7,13 +7,13 @@ class PseudocodeInterpreter:
         self.execution_steps = []
         self.current_step = 0
         self.output = []
-        self.loop_depth = 0
+        self.loop_stack = []
 
     def interpret(self, pseudocode):
         self.execution_steps = []
         self.current_step = 0
         self.output = []
-        self.loop_depth = 0
+        self.loop_stack = []
         lines = pseudocode.split('\n')
         i = 0
         while i < len(lines):
@@ -64,8 +64,10 @@ class PseudocodeInterpreter:
         elif line.startswith('ARRAY'):
             self.array_declaration(line)
             return None, i
-        elif line == 'ENDFOR' or line == 'ENDWHILE' or line == 'ENDIF' or line == 'ENDFUNCTION':
-            return None, i  # Treat these as no-ops when encountered directly
+        elif line in ['ENDFOR', 'ENDWHILE', 'ENDIF', 'ENDFUNCTION']:
+            if self.loop_stack and self.loop_stack[-1][0] == line[3:]:
+                self.loop_stack.pop()
+            return None, i
         else:
             raise ValueError(f"Unsupported command: {line}")
 
@@ -132,32 +134,34 @@ class PseudocodeInterpreter:
         var, start, end = match.groups()
         i += 1
         loop_block = []
-        self.loop_depth += 1
+        self.loop_stack.append(('FOR', var))
         
         while i < len(lines):
             if lines[i].strip() == 'ENDFOR':
-                if self.loop_depth == 1:
+                if self.loop_stack[-1] == ('FOR', var):
+                    self.loop_stack.pop()
                     i += 1
                     break
-                else:
-                    self.loop_depth -= 1
             loop_block.append(lines[i])
             i += 1
         
-        if self.loop_depth > 0:
-            self.loop_depth -= 1
-        
-        if i == len(lines) and self.loop_depth > 0:
+        if not self.loop_stack or self.loop_stack[-1][0] != 'FOR':
             raise ValueError(f"FOR loop not properly closed with ENDFOR, starting from line {i + 1}")
         
         start_value = int(self.evaluate_expression(start))
         end_value = int(self.evaluate_expression(end))
         output = []
+        old_var_value = self.variables.get(var)
         for j in range(start_value, end_value + 1):
             self.variables[var] = j
             result = self.interpret('\n'.join(loop_block))
             if result:
                 output.append(result)
+        
+        if old_var_value is not None:
+            self.variables[var] = old_var_value
+        else:
+            del self.variables[var]
         
         return '\n'.join(output), i - 1
 
@@ -169,22 +173,18 @@ class PseudocodeInterpreter:
         condition = condition_match.group(1)
         i += 1
         loop_block = []
-        self.loop_depth += 1
+        self.loop_stack.append(('WHILE', None))
         
         while i < len(lines):
             if lines[i].strip() == 'ENDWHILE':
-                if self.loop_depth == 1:
+                if self.loop_stack[-1][0] == 'WHILE':
+                    self.loop_stack.pop()
                     i += 1
                     break
-                else:
-                    self.loop_depth -= 1
             loop_block.append(lines[i])
             i += 1
         
-        if self.loop_depth > 0:
-            self.loop_depth -= 1
-        
-        if i == len(lines) and self.loop_depth > 0:
+        if not self.loop_stack or self.loop_stack[-1][0] != 'WHILE':
             raise ValueError(f"WHILE loop not properly closed with ENDWHILE, starting from line {i + 1}")
         
         output = []
@@ -204,14 +204,18 @@ class PseudocodeInterpreter:
         params = [p.strip() for p in params.split(',') if p.strip()]
         i += 1
         func_body = []
+        self.loop_stack.append(('FUNCTION', func_name))
         
-        while i < len(lines) and not lines[i].strip().startswith('ENDFUNCTION'):
+        while i < len(lines):
+            if lines[i].strip() == 'ENDFUNCTION':
+                if self.loop_stack[-1] == ('FUNCTION', func_name):
+                    self.loop_stack.pop()
+                    i += 1
+                    break
             func_body.append(lines[i])
             i += 1
         
-        if i < len(lines) and lines[i].strip().startswith('ENDFUNCTION'):
-            i += 1
-        else:
+        if not self.loop_stack or self.loop_stack[-1][0] != 'FUNCTION':
             raise ValueError(f"Function not properly closed with ENDFUNCTION, starting from line {i + 1}")
         
         self.functions[func_name] = {
@@ -300,3 +304,4 @@ class PseudocodeInterpreter:
         self.variables = {}
         self.functions = {}
         self.output = []
+        self.loop_stack = []
