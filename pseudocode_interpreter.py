@@ -153,18 +153,20 @@ class PseudocodeInterpreter:
         var, start, end = match.groups()
         i += 1
         loop_block = []
-        self.loop_stack.append(('FOR', var))
+        loop_depth = 1
         
         while i < len(lines):
-            if lines[i].strip() == 'ENDFOR':
-                if self.loop_stack[-1] == ('FOR', var):
-                    self.loop_stack.pop()
+            if lines[i].strip().startswith('FOR'):
+                loop_depth += 1
+            elif lines[i].strip() == 'ENDFOR':
+                loop_depth -= 1
+                if loop_depth == 0:
                     i += 1
                     break
             loop_block.append(lines[i])
             i += 1
         
-        if not self.loop_stack or self.loop_stack[-1][0] != 'FOR':
+        if loop_depth > 0:
             raise ValueError(f"FOR loop not properly closed with ENDFOR, starting from line {i + 1}")
         
         start_value = int(self.evaluate_expression(start))
@@ -176,9 +178,11 @@ class PseudocodeInterpreter:
             loop_scope.set(var, j)
             old_scope = self.current_scope
             self.current_scope = loop_scope
+            self.loop_stack.append(('FOR', var))
             result = self.interpret('\n'.join(loop_block))
             if result:
                 output.append(result)
+            self.loop_stack.pop()
             self.current_scope = old_scope
         
         return '\n'.join(output), i - 1
@@ -191,18 +195,20 @@ class PseudocodeInterpreter:
         condition = condition_match.group(1)
         i += 1
         loop_block = []
-        self.loop_stack.append(('WHILE', None))
+        loop_depth = 1
         
         while i < len(lines):
-            if lines[i].strip() == 'ENDWHILE':
-                if self.loop_stack[-1][0] == 'WHILE':
-                    self.loop_stack.pop()
+            if lines[i].strip().startswith('WHILE'):
+                loop_depth += 1
+            elif lines[i].strip() == 'ENDWHILE':
+                loop_depth -= 1
+                if loop_depth == 0:
                     i += 1
                     break
             loop_block.append(lines[i])
             i += 1
         
-        if not self.loop_stack or self.loop_stack[-1][0] != 'WHILE':
+        if loop_depth > 0:
             raise ValueError(f"WHILE loop not properly closed with ENDWHILE, starting from line {i + 1}")
         
         output = []
@@ -210,9 +216,11 @@ class PseudocodeInterpreter:
             loop_scope = Scope(self.current_scope)
             old_scope = self.current_scope
             self.current_scope = loop_scope
+            self.loop_stack.append(('WHILE', None))
             result = self.interpret('\n'.join(loop_block))
             if result:
                 output.append(result)
+            self.loop_stack.pop()
             self.current_scope = old_scope
         
         return '\n'.join(output), i - 1
@@ -226,19 +234,13 @@ class PseudocodeInterpreter:
         params = [p.strip() for p in params.split(',') if p.strip()]
         i += 1
         func_body = []
-        self.loop_stack.append(('FUNCTION', func_name))
         
         while i < len(lines):
             if lines[i].strip() == 'ENDFUNCTION':
-                if self.loop_stack[-1] == ('FUNCTION', func_name):
-                    self.loop_stack.pop()
-                    i += 1
-                    break
+                i += 1
+                break
             func_body.append(lines[i])
             i += 1
-        
-        if not self.loop_stack or self.loop_stack[-1][0] != 'FUNCTION':
-            raise ValueError(f"Function not properly closed with ENDFUNCTION, starting from line {i + 1}")
         
         self.functions[func_name] = {
             'params': params,
@@ -268,7 +270,9 @@ class PseudocodeInterpreter:
         
         old_scope = self.current_scope
         self.current_scope = func_scope
+        self.loop_stack.append(('FUNCTION', func_name))
         result = self.interpret('\n'.join(func['body']))
+        self.loop_stack.pop()
         self.current_scope = old_scope
         
         return result
