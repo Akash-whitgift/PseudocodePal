@@ -1,4 +1,11 @@
-from flask import Flask, render_template, request, jsonify
+FOR i FROM 1 TO 3 DO
+PRINT "Outer loop: "
+PRINT i
+FOR j FROM 1 TO 2 DO
+PRINT "Inner loop: "
+PRINT j
+ENDFOR
+ENDFORfrom flask import Flask, render_template, request, jsonify
 from pseudocode_interpreter import PseudocodeInterpreter
 import json
 import os
