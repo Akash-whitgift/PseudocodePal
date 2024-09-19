@@ -142,7 +142,7 @@ def test_consistency():
     # Full interpretation
     full_result = interpreter.interpret(pseudocode)
     full_output = interpreter.output
-    full_variables = interpreter.variables.copy()
+    full_variables = interpreter.get_all_variables()
     
     # Step-by-step execution
     interpreter.reset_execution()
@@ -177,4 +177,4 @@ def test_consistency():
     })
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=8080)
