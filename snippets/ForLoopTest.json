@@ -1,0 +1,1 @@
+{"name": "ForLoopTest", "code": "FUNCTION test(x)\nPRINT x\nFOR i FROM 1 TO 3 DO\nPRINT i\nENDFOR\nENDFUNCTION\nCALL test(5)\n"}

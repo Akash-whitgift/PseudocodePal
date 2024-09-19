@@ -150,7 +150,7 @@ class PseudocodeInterpreter:
         if i < len(lines) and lines[i].strip().startswith('ENDIF'):
             i += 1
         else:
-            raise ValueError(f"IF statement not properly closed with ENDIF, starting from line {i + 1}")
+            raise ValueError(f"IF statement not properly closed with ENDIF, starting from line {self.current_line}")
         
         self.push_scope()
         
@@ -184,7 +184,7 @@ class PseudocodeInterpreter:
             i += 1
         
         if loop_depth > 0:
-            raise ValueError(f"FOR loop not properly closed with ENDFOR, starting from line {i + 1}")
+            raise ValueError(f"FOR loop not properly closed with ENDFOR, starting from line {self.current_line}")
         
         start_value = int(self.evaluate_expression(start))
         end_value = int(self.evaluate_expression(end))
@@ -224,7 +224,7 @@ class PseudocodeInterpreter:
             i += 1
         
         if loop_depth > 0:
-            raise ValueError(f"WHILE loop not properly closed with ENDWHILE, starting from line {i + 1}")
+            raise ValueError(f"WHILE loop not properly closed with ENDWHILE, starting from line {self.current_line}")
         
         output = []
         iteration = 0
@@ -256,6 +256,9 @@ class PseudocodeInterpreter:
                 break
             func_body.append(lines[i])
             i += 1
+        
+        if i == len(lines):
+            raise ValueError(f"Function '{func_name}' not properly closed with ENDFUNCTION")
         
         self.functions[func_name] = {
             'params': params,
@@ -365,7 +368,7 @@ class PseudocodeInterpreter:
     def get_loop_info(self):
         if self.loop_stack:
             loop_type, var, iteration = self.loop_stack[-1]
-            return f"In {loop_type} loop, variable '{var}', iteration {iteration}"
+            return f"In {loop_type} loop" + (f", variable '{var}'" if var else "") + f", iteration {iteration}"
         return "Not currently in a loop"
 
     def format_error(self, error_message, line_number):
