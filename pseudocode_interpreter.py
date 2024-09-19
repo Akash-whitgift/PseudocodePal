@@ -130,7 +130,7 @@ class PseudocodeInterpreter:
     def if_statement(self, lines, i):
         condition_match = re.match(r'IF\s+(.+)\s+THEN', lines[i])
         if not condition_match:
-            raise ValueError(f"Invalid IF statement on line {i + 1}: {lines[i]}")
+            raise ValueError(f"Invalid IF statement on line {self.current_line}: {lines[i]}")
         
         condition = condition_match.group(1)
         i += 1
@@ -165,7 +165,7 @@ class PseudocodeInterpreter:
     def for_loop(self, lines, i):
         match = re.match(r'FOR\s+(\w+)\s+FROM\s+(.+)\s+TO\s+(.+)\s+DO', lines[i])
         if not match:
-            raise ValueError(f"Invalid FOR loop on line {i + 1}: {lines[i]}")
+            raise ValueError(f"Invalid FOR loop on line {self.current_line}: {lines[i]}")
         
         var, start, end = match.groups()
         i += 1
@@ -205,7 +205,7 @@ class PseudocodeInterpreter:
     def while_loop(self, lines, i):
         condition_match = re.match(r'WHILE\s+(.+)', lines[i])
         if not condition_match:
-            raise ValueError(f"Invalid WHILE statement on line {i + 1}: {lines[i]}")
+            raise ValueError(f"Invalid WHILE statement on line {self.current_line}: {lines[i]}")
         
         condition = condition_match.group(1)
         i += 1
@@ -243,7 +243,7 @@ class PseudocodeInterpreter:
     def function_definition(self, lines, i):
         match = re.match(r'FUNCTION\s+(\w+)\s*\((.*?)\)', lines[i])
         if not match:
-            raise ValueError(f"Invalid function definition on line {i + 1}: {lines[i]}")
+            raise ValueError(f"Invalid function definition on line {self.current_line}: {lines[i]}")
         
         func_name, params = match.groups()
         params = [p.strip() for p in params.split(',') if p.strip()]
@@ -286,7 +286,7 @@ class PseudocodeInterpreter:
         for param, arg in zip(func['params'], args):
             self.current_scope.set(param, arg)
         
-        self.loop_stack.append(('FUNCTION', func_name))
+        self.loop_stack.append(('FUNCTION', func_name, 0))
         result = self.interpret('\n'.join(func['body']))
         self.loop_stack.pop()
         self.pop_scope()
