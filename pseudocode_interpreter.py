@@ -18,22 +18,36 @@ class Scope:
 class PseudocodeInterpreter:
     def __init__(self):
         self.global_scope = Scope()
-        self.current_scope = self.global_scope
+        self.scope_stack = [self.global_scope]
         self.functions = {}
         self.execution_steps = []
         self.current_step = 0
         self.output = []
         self.loop_stack = []
+        self.current_line = 0
+
+    @property
+    def current_scope(self):
+        return self.scope_stack[-1]
+
+    def push_scope(self):
+        self.scope_stack.append(Scope(self.current_scope))
+
+    def pop_scope(self):
+        if len(self.scope_stack) > 1:
+            self.scope_stack.pop()
 
     def interpret(self, pseudocode):
         self.execution_steps = []
         self.current_step = 0
         self.output = []
         self.loop_stack = []
-        self.current_scope = self.global_scope
+        self.scope_stack = [self.global_scope]
+        self.current_line = 0
         lines = pseudocode.split('\n')
         i = 0
         while i < len(lines):
+            self.current_line = i + 1
             line = lines[i].strip()
             if line and not line.startswith('#'):  # Ignore empty lines and comments
                 try:
@@ -41,7 +55,7 @@ class PseudocodeInterpreter:
                     if result is not None:
                         self.output.append(result)
                 except Exception as e:
-                    error_msg = f"Error on line {i + 1}: {str(e)}"
+                    error_msg = self.format_error(str(e), i)
                     self.output.append(error_msg)
                     self.execution_steps.append({
                         'line': line,
@@ -84,7 +98,7 @@ class PseudocodeInterpreter:
         elif line in ['ENDFOR', 'ENDWHILE', 'ENDIF', 'ENDFUNCTION']:
             if self.loop_stack and self.loop_stack[-1][0] == line[3:]:
                 self.loop_stack.pop()
-                self.current_scope = self.current_scope.parent
+            self.pop_scope()
             return None, i
         else:
             raise ValueError(f"Unsupported command: {line}")
@@ -138,16 +152,14 @@ class PseudocodeInterpreter:
         else:
             raise ValueError(f"IF statement not properly closed with ENDIF, starting from line {i + 1}")
         
-        if_scope = Scope(self.current_scope)
-        old_scope = self.current_scope
-        self.current_scope = if_scope
+        self.push_scope()
         
         if self.evaluate_expression(condition):
             result = self.interpret('\n'.join(true_block))
         else:
             result = self.interpret('\n'.join(false_block))
         
-        self.current_scope = old_scope
+        self.pop_scope()
         return result, i - 1
 
     def for_loop(self, lines, i):
@@ -179,16 +191,14 @@ class PseudocodeInterpreter:
         output = []
         
         for j in range(start_value, end_value + 1):
-            loop_scope = Scope(self.current_scope)
-            loop_scope.set(var, j)
-            old_scope = self.current_scope
-            self.current_scope = loop_scope
+            self.push_scope()
+            self.current_scope.set(var, j)
             self.loop_stack.append(('FOR', var, j))
             result = self.interpret('\n'.join(loop_block))
             if result:
                 output.append(result)
             self.loop_stack.pop()
-            self.current_scope = old_scope
+            self.pop_scope()
         
         return '\n'.join(output), i - 1
 
@@ -219,15 +229,13 @@ class PseudocodeInterpreter:
         output = []
         iteration = 0
         while self.evaluate_expression(condition):
-            loop_scope = Scope(self.current_scope)
-            old_scope = self.current_scope
-            self.current_scope = loop_scope
+            self.push_scope()
             self.loop_stack.append(('WHILE', None, iteration))
             result = self.interpret('\n'.join(loop_block))
             if result:
                 output.append(result)
             self.loop_stack.pop()
-            self.current_scope = old_scope
+            self.pop_scope()
             iteration += 1
         
         return '\n'.join(output), i - 1
@@ -271,16 +279,14 @@ class PseudocodeInterpreter:
         if len(args) != len(func['params']):
             raise ValueError(f"Function '{func_name}' expects {len(func['params'])} arguments, but {len(args)} were given")
         
-        func_scope = Scope(self.current_scope)
+        self.push_scope()
         for param, arg in zip(func['params'], args):
-            func_scope.set(param, arg)
+            self.current_scope.set(param, arg)
         
-        old_scope = self.current_scope
-        self.current_scope = func_scope
         self.loop_stack.append(('FUNCTION', func_name))
         result = self.interpret('\n'.join(func['body']))
         self.loop_stack.pop()
-        self.current_scope = old_scope
+        self.pop_scope()
         
         return result
 
@@ -338,25 +344,22 @@ class PseudocodeInterpreter:
     def reset_execution(self):
         self.current_step = 0
         self.global_scope = Scope()
-        self.current_scope = self.global_scope
+        self.scope_stack = [self.global_scope]
         self.functions = {}
         self.output = []
         self.loop_stack = []
+        self.current_line = 0
 
     def get_all_variables(self):
         variables = {}
-        scope = self.current_scope
-        while scope:
+        for scope in reversed(self.scope_stack):
             variables.update(scope.variables)
-            scope = scope.parent
         return variables
 
     def get_variable(self, name):
-        scope = self.current_scope
-        while scope:
+        for scope in reversed(self.scope_stack):
             if name in scope.variables:
                 return scope.variables[name]
-            scope = scope.parent
         raise ValueError(f"Variable '{name}' is not defined")
 
     def get_loop_info(self):
@@ -364,3 +367,8 @@ class PseudocodeInterpreter:
             loop_type, var, iteration = self.loop_stack[-1]
             return f"In {loop_type} loop, variable '{var}', iteration {iteration}"
         return "Not currently in a loop"
+
+    def format_error(self, error_message, line_number):
+        loop_info = self.get_loop_info()
+        variables = ", ".join([f"{k}={v}" for k, v in self.get_all_variables().items()])
+        return f"Error on line {line_number + 1}: {error_message}. {loop_info}. Variables: {variables}"
