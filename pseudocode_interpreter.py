@@ -120,11 +120,15 @@ class PseudocodeInterpreter:
     def output_statement(self, line):
         match = re.match(r'OUTPUT\s+(.+)', line)
         if match:
-            content = match.group(1)
+            content = match.group(1).strip()
             if content.startswith('"') and content.endswith('"'):
                 return content[1:-1]  # Remove quotes for string literals
             else:
-                return str(self.evaluate_expression(content))
+                try:
+                    return str(self.evaluate_expression(content))
+                except:
+                    # If evaluation fails, treat it as a variable name
+                    return str(self.get_variable(content)['value'])
         raise ValueError(f"Invalid OUTPUT statement: {line}")
 
     def input_statement(self, line):
@@ -347,11 +351,13 @@ class PseudocodeInterpreter:
         size = upper - lower + 1
         self.current_scope.set(array_name, [None] * size, f'ARRAY[{lower}:{upper}] OF {array_type}')
 
+
+
     def evaluate_expression(self, expression):
         try:
             if expression.startswith('"') and expression.endswith('"'):
                 return expression[1:-1]
-            
+
             array_access = re.match(r'(\w+)\[(.+)\]', expression)
             if array_access:
                 array_name, index = array_access.groups()
@@ -362,17 +368,19 @@ class PseudocodeInterpreter:
                 if index < 0 or index >= len(array['value']):
                     raise ValueError(f"Index {index} is out of bounds for array '{array_name}'")
                 return array['value'][index]
-            
+
             for var in re.findall(r'\b[a-zA-Z_]\w*\b', expression):
                 if var in self.get_all_variables():
                     var_value = self.get_variable(var)['value']
-                    expression = re.sub(r'\b' + var + r'\b', str(var_value), expression)
-            
-            # Replace ≠ with != for Python evaluation
+                    if isinstance(var_value, str):
+                        expression = expression.replace(var, f'"{var_value}"')
+                    else:
+                        expression = expression.replace(var, str(var_value))
+
             expression = expression.replace('≠', '!=')
             # Replace ^ with ** for exponentiation
             expression = expression.replace('^', '**')
-            
+
             return eval(expression, {"__builtins__": None}, {
                 "+": lambda x, y: x + y,
                 "-": lambda x, y: x - y,
@@ -389,10 +397,11 @@ class PseudocodeInterpreter:
                 "OR": lambda x, y: x or y,
                 "NOT": lambda x: not x,
             })
+
         except Exception as e:
             loop_info = self.get_loop_info()
             raise ValueError(f"Invalid expression: {expression}. Error: {str(e)}. {loop_info}")
-
+            
     def infer_type(self, value):
         if isinstance(value, bool):
             return 'BOOLEAN'
