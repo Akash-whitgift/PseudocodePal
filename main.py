@@ -53,7 +53,8 @@ def next_step():
 @app.route('/example')
 def example():
     logger.debug("Serving example code")
-    example_code = """
+    try:
+        example_code = """
 # This is a comment
 DECLARE x : INTEGER
 DECLARE y : INTEGER
@@ -175,7 +176,12 @@ OUTPUT mod_result
 OUTPUT "2 ^ 3 ="
 OUTPUT power_result
 """
-    return jsonify({'example': example_code})
+        # Ensure the example code is properly escaped
+        example_code = json.dumps(example_code)
+        return jsonify({'example': json.loads(example_code)})
+    except Exception as e:
+        logger.error(f"Error in /example route: {str(e)}")
+        return jsonify({'error': 'Failed to load example code'}), 500
 
 @app.route('/save_snippet', methods=['POST'])
 def save_snippet():

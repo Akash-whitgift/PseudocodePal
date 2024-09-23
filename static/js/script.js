@@ -72,10 +72,18 @@ document.addEventListener('DOMContentLoaded', () => {
     loadExampleButton.addEventListener('click', async () => {
         try {
             const response = await fetch('/example');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data = await response.json();
+            if (data.error) {
+                throw new Error(data.error);
+            }
             pseudocodeEditor.textContent = data.example;
             updateSyntaxHighlighting();
+            outputDiv.textContent = 'Example loaded successfully';
         } catch (error) {
+            console.error('Error loading example:', error);
             outputDiv.innerHTML = `<span class="error">Failed to load example: ${error.message}</span>`;
         }
     });
