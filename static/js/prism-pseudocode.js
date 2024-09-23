@@ -7,11 +7,15 @@ Prism.languages.pseudocode = {
         pattern: /"(?:\\.|[^\\"])*"/,
         greedy: true
     },
-    'keyword': /\b(?:IF|THEN|ELSE|ENDIF|FOR|FROM|TO|DO|ENDFOR|WHILE|ENDWHILE|FUNCTION|ENDFUNCTION|ARRAY|PRINT|CALL)\b/,
+    'keyword': /\b(?:IF|THEN|ELSE|ENDIF|FOR|TO|NEXT|WHILE|DO|ENDWHILE|PROCEDURE|ENDPROCEDURE|ARRAY|OUTPUT|INPUT|DECLARE|OF|AND|OR|NOT|MOD)\b/,
     'boolean': /\b(?:TRUE|FALSE)\b/,
     'number': /\b\d+(?:\.\d+)?\b/,
-    'operator': /[+\-*\/=<>]=?|[!&|^~]|\b(?:AND|OR|NOT)\b/,
-    'punctuation': /[(){}\[\],]/
+    'operator': /[+\-*\/=<>≤≥≠^←]/,
+    'punctuation': /[(){}\[\],]/,
+    'type': {
+        pattern: /\b(?:INTEGER|REAL|CHAR|STRING|BOOLEAN)\b/,
+        alias: 'function'
+    }
 };
 
 Prism.languages.pseudocode['string'].inside = {

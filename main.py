@@ -54,80 +54,125 @@ def example():
     logger.debug("Serving example code")
     example_code = """
 # This is a comment
-x = 10
-y = 5
+DECLARE x : INTEGER
+DECLARE y : INTEGER
+x ← 10
+y ← 5
 
 IF x > y THEN
-    PRINT "x is greater than y"
+    OUTPUT "x is greater than y"
 ELSE
-    PRINT "y is greater than or equal to x"
+    OUTPUT "y is greater than or equal to x"
 ENDIF
 
-PRINT "The value of x is"
-PRINT x
+OUTPUT "The value of x is"
+OUTPUT x
 
-count = 0
-WHILE count < 5
-    PRINT "Current count:"
-    PRINT count
-    count = count + 1
+DECLARE count : INTEGER
+count ← 0
+WHILE count < 5 DO
+    OUTPUT "Current count:"
+    OUTPUT count
+    count ← count + 1
 ENDWHILE
 
-PRINT "Counting from 1 to 3:"
-FOR i FROM 1 TO 3 DO
-    PRINT i
-ENDFOR
+OUTPUT "Counting from 1 to 3:"
+FOR i ← 1 TO 3
+    OUTPUT i
+NEXT i
 
-result = (x + y) * 2
-PRINT "The result of (x + y) * 2 is:"
-PRINT result
+DECLARE result : INTEGER
+result ← (x + y) * 2
+OUTPUT "The result of (x + y) * 2 is:"
+OUTPUT result
 
-# Function definition
-FUNCTION add(a, b)
-    PRINT "Adding two numbers:"
-    PRINT a + b
-ENDFUNCTION
+# Procedure definition
+PROCEDURE add(a, b)
+    OUTPUT "Adding two numbers:"
+    OUTPUT a + b
+ENDPROCEDURE
 
-# Function call
-CALL add(5, 7)
+# Procedure call
+add(5, 7)
 
 # Array declaration and initialization
-ARRAY numbers[5] = 10, 20, 30, 40, 50
+ARRAY numbers[1:5] OF INTEGER
+numbers[1] ← 10
+numbers[2] ← 20
+numbers[3] ← 30
+numbers[4] ← 40
+numbers[5] ← 50
 
-PRINT "Array elements:"
-FOR i FROM 0 TO 4 DO
-    PRINT numbers[i]
-ENDFOR
+OUTPUT "Array elements:"
+FOR i ← 1 TO 5
+    OUTPUT numbers[i]
+NEXT i
 
 # Get array length
-PRINT "Array length:"
-PRINT LENGTH numbers
+OUTPUT "Array length:"
+OUTPUT 5  # Hardcoded as IGCSE doesn't have a built-in length function
 
-# Append to array
-APPEND numbers, 60
-PRINT "Array after append:"
-FOR i FROM 0 TO 5 DO
-    PRINT numbers[i]
-ENDFOR
+# Append to array (not supported in IGCSE, but we can simulate by reassigning)
+DECLARE temp : INTEGER
+temp ← numbers[5]
+numbers[5] ← 60
+OUTPUT "Array after append:"
+FOR i ← 1 TO 5
+    OUTPUT numbers[i]
+NEXT i
 
-# Remove from array
-REMOVE numbers, 2
-PRINT "Array after removing index 2:"
-FOR i FROM 0 TO 4 DO
-    PRINT numbers[i]
-ENDFOR
+# Remove from array (not supported in IGCSE, but we can simulate by shifting elements)
+FOR i ← 2 TO 4
+    numbers[i] ← numbers[i + 1]
+NEXT i
+numbers[5] ← temp
+OUTPUT "Array after removing index 2:"
+FOR i ← 1 TO 5
+    OUTPUT numbers[i]
+NEXT i
 
-# Function to calculate sum of array elements
-FUNCTION array_sum(arr)
-    sum = 0
-    FOR i FROM 0 TO LENGTH arr - 1 DO
-        sum = sum + arr[i]
-    ENDFOR
-    PRINT "Sum of array elements:"
-    PRINT sum
-ENDFUNCTION
+# Procedure to calculate sum of array elements
+PROCEDURE array_sum(arr)
+    DECLARE sum : INTEGER
+    sum ← 0
+    FOR i ← 1 TO 5
+        sum ← sum + arr[i]
+    NEXT i
+    OUTPUT "Sum of array elements:"
+    OUTPUT sum
+ENDPROCEDURE
 
-CALL array_sum(numbers)
+array_sum(numbers)
+
+# Demonstrate INPUT statement
+INPUT name
+OUTPUT "Hello, " + name
+
+# Demonstrate BOOLEAN type and logical operators
+DECLARE is_true : BOOLEAN
+DECLARE is_false : BOOLEAN
+is_true ← TRUE
+is_false ← FALSE
+IF is_true AND NOT is_false THEN
+    OUTPUT "Boolean logic works!"
+ENDIF
+
+# Demonstrate REAL type and relational operators
+DECLARE pi : REAL
+pi ← 3.14159
+IF pi > 3 AND pi < 4 THEN
+    OUTPUT "pi is between 3 and 4"
+ENDIF
+
+# Demonstrate MOD and ^ operators
+DECLARE mod_result : INTEGER
+DECLARE power_result : INTEGER
+mod_result ← 17 MOD 5
+power_result ← 2 ^ 3
+OUTPUT "17 MOD 5 ="
+OUTPUT mod_result
+OUTPUT "2 ^ 3 ="
+OUTPUT power_result
 """
     return jsonify({'example': example_code})
 

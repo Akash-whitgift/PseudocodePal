@@ -12,14 +12,14 @@ class Scope:
             return self.parent.get(name)
         raise ValueError(f"Variable '{name}' is not defined")
 
-    def set(self, name, value):
-        self.variables[name] = value
+    def set(self, name, value, type_):
+        self.variables[name] = {'value': value, 'type': type_}
 
 class PseudocodeInterpreter:
     def __init__(self):
         self.global_scope = Scope()
         self.scope_stack = [self.global_scope]
-        self.functions = {}
+        self.procedures = {}
         self.execution_steps = []
         self.current_step = 0
         self.output = []
@@ -73,11 +73,14 @@ class PseudocodeInterpreter:
             'output': None
         })
         
-        if line.startswith('PRINT'):
-            result = self.print_statement(line)
+        if line.startswith('OUTPUT'):
+            result = self.output_statement(line)
             self.execution_steps[-1]['output'] = result
             return result, i
-        elif '=' in line:
+        elif line.startswith('INPUT'):
+            self.input_statement(line)
+            return None, i
+        elif '←' in line:
             self.assignment(line)
             return None, i
         elif line.startswith('IF'):
@@ -86,56 +89,63 @@ class PseudocodeInterpreter:
             return self.for_loop(lines, i)
         elif line.startswith('WHILE'):
             return self.while_loop(lines, i)
-        elif line.startswith('FUNCTION'):
-            return self.function_definition(lines, i)
-        elif line.startswith('CALL'):
-            result = self.function_call(line)
-            self.execution_steps[-1]['output'] = result
-            return result, i
+        elif line.startswith('PROCEDURE'):
+            return self.procedure_definition(lines, i)
+        elif line.startswith('DECLARE'):
+            self.variable_declaration(line)
+            return None, i
         elif line.startswith('ARRAY'):
             self.array_declaration(line)
             return None, i
-        elif line.startswith('APPEND'):
-            self.array_append(line)
-            return None, i
-        elif line.startswith('REMOVE'):
-            self.array_remove(line)
-            return None, i
-        elif line.startswith('LENGTH'):
-            result = self.array_length(line)
-            self.execution_steps[-1]['output'] = result
-            return result, i
-        elif line in ['ENDFOR', 'ENDWHILE', 'ENDIF', 'ENDFUNCTION']:
+        elif line in ['NEXT', 'ENDWHILE', 'ENDIF', 'ENDPROCEDURE']:
             if self.loop_stack and self.loop_stack[-1][0] == line[3:]:
                 self.loop_stack.pop()
             self.pop_scope()
             return None, i
         else:
+            # Check if it's a procedure call
+            procedure_match = re.match(r'(\w+)\s*\((.*?)\)', line)
+            if procedure_match:
+                result = self.procedure_call(line)
+                self.execution_steps[-1]['output'] = result
+                return result, i
             raise ValueError(f"Unsupported command: {line}")
 
-    def print_statement(self, line):
-        match = re.match(r'PRINT\s+(.+)', line)
+    def output_statement(self, line):
+        match = re.match(r'OUTPUT\s+(.+)', line)
         if match:
             content = match.group(1)
             if content.startswith('"') and content.endswith('"'):
                 return content[1:-1]  # Remove quotes for string literals
             else:
                 return str(self.evaluate_expression(content))
-        raise ValueError(f"Invalid PRINT statement: {line}")
+        raise ValueError(f"Invalid OUTPUT statement: {line}")
+
+    def input_statement(self, line):
+        match = re.match(r'INPUT\s+(\w+)', line)
+        if match:
+            variable = match.group(1)
+            value = input(f"Enter value for {variable}: ")
+            self.current_scope.set(variable, value, 'STRING')
+        else:
+            raise ValueError(f"Invalid INPUT statement: {line}")
 
     def assignment(self, line):
-        variable, expression = map(str.strip, line.split('='))
+        variable, expression = map(str.strip, line.split('←'))
         if '[' in variable:  # Array assignment
             array_name, index = re.match(r'(\w+)\[(.+)\]', variable).groups()
             index = int(self.evaluate_expression(index))
             array = self.get_variable(array_name)
-            if not isinstance(array, list):
+            if not isinstance(array['value'], list):
                 raise ValueError(f"'{array_name}' is not an array")
-            if index < 0 or index >= len(array):
+            if index < 0 or index >= len(array['value']):
                 raise ValueError(f"Index {index} is out of bounds for array '{array_name}'")
-            array[index] = self.evaluate_expression(expression)
+            value = self.evaluate_expression(expression)
+            array['value'][index] = value
         else:
-            self.current_scope.set(variable, self.evaluate_expression(expression))
+            value = self.evaluate_expression(expression)
+            var_type = self.infer_type(value)
+            self.current_scope.set(variable, value, var_type)
 
     def if_statement(self, lines, i):
         condition_match = re.match(r'IF\s+(.+)\s+THEN', lines[i])
@@ -173,7 +183,7 @@ class PseudocodeInterpreter:
         return result, i - 1
 
     def for_loop(self, lines, i):
-        match = re.match(r'FOR\s+(\w+)\s+FROM\s+(.+)\s+TO\s+(.+)\s+DO', lines[i])
+        match = re.match(r'FOR\s+(\w+)\s+←\s+(.+)\s+TO\s+(.+)', lines[i])
         if not match:
             raise ValueError(f"Invalid FOR loop on line {self.current_line}: {lines[i]}")
         
@@ -185,16 +195,18 @@ class PseudocodeInterpreter:
         while i < len(lines):
             if lines[i].strip().startswith('FOR'):
                 loop_depth += 1
-            elif lines[i].strip() == 'ENDFOR':
+            elif lines[i].strip().startswith('NEXT'):
                 loop_depth -= 1
                 if loop_depth == 0:
+                    if not lines[i].strip().endswith(var):
+                        raise ValueError(f"FOR loop not properly closed with NEXT {var}, on line {i + 1}")
                     i += 1
                     break
             loop_block.append(lines[i])
             i += 1
         
         if loop_depth > 0:
-            raise ValueError(f"FOR loop not properly closed with ENDFOR, starting from line {self.current_line}")
+            raise ValueError(f"FOR loop not properly closed with NEXT {var}, starting from line {self.current_line}")
         
         start_value = int(self.evaluate_expression(start))
         end_value = int(self.evaluate_expression(end))
@@ -202,7 +214,7 @@ class PseudocodeInterpreter:
         
         for j in range(start_value, end_value + 1):
             self.push_scope()
-            self.current_scope.set(var, j)
+            self.current_scope.set(var, j, 'INTEGER')
             self.loop_stack.append(('FOR', var, j))
             result = self.interpret('\n'.join(loop_block))
             if result:
@@ -213,7 +225,7 @@ class PseudocodeInterpreter:
         return '\n'.join(output), i - 1
 
     def while_loop(self, lines, i):
-        condition_match = re.match(r'WHILE\s+(.+)', lines[i])
+        condition_match = re.match(r'WHILE\s+(.+)\s+DO', lines[i])
         if not condition_match:
             raise ValueError(f"Invalid WHILE statement on line {self.current_line}: {lines[i]}")
         
@@ -250,114 +262,84 @@ class PseudocodeInterpreter:
         
         return '\n'.join(output), i - 1
 
-    def function_definition(self, lines, i):
-        match = re.match(r'FUNCTION\s+(\w+)\s*\((.*?)\)', lines[i])
+    def procedure_definition(self, lines, i):
+        match = re.match(r'PROCEDURE\s+(\w+)\s*\((.*?)\)', lines[i])
         if not match:
-            raise ValueError(f"Invalid function definition on line {self.current_line}: {lines[i]}")
+            raise ValueError(f"Invalid procedure definition on line {self.current_line}: {lines[i]}")
         
-        func_name, params = match.groups()
+        proc_name, params = match.groups()
         params = [p.strip() for p in params.split(',') if p.strip()]
         i += 1
-        func_body = []
+        proc_body = []
         
         while i < len(lines):
-            if lines[i].strip() == 'ENDFUNCTION':
+            if lines[i].strip() == 'ENDPROCEDURE':
                 i += 1
                 break
-            func_body.append(lines[i])
+            proc_body.append(lines[i])
             i += 1
         
         if i == len(lines):
-            raise ValueError(f"Function '{func_name}' not properly closed with ENDFUNCTION")
+            raise ValueError(f"Procedure '{proc_name}' not properly closed with ENDPROCEDURE")
         
-        self.functions[func_name] = {
+        self.procedures[proc_name] = {
             'params': params,
-            'body': func_body
+            'body': proc_body
         }
         
         return None, i - 1
 
-    def function_call(self, line):
-        match = re.match(r'CALL\s+(\w+)\s*\((.*?)\)', line)
+    def procedure_call(self, line):
+        match = re.match(r'(\w+)\s*\((.*?)\)', line)
         if not match:
-            raise ValueError(f"Invalid function call: {line}")
+            raise ValueError(f"Invalid procedure call: {line}")
         
-        func_name, args = match.groups()
+        proc_name, args = match.groups()
         args = [self.evaluate_expression(arg.strip()) for arg in args.split(',') if arg.strip()]
         
-        if func_name not in self.functions:
-            raise ValueError(f"Function '{func_name}' is not defined")
+        if proc_name not in self.procedures:
+            raise ValueError(f"Procedure '{proc_name}' is not defined")
         
-        func = self.functions[func_name]
-        if len(args) != len(func['params']):
-            raise ValueError(f"Function '{func_name}' expects {len(func['params'])} arguments, but {len(args)} were given")
+        proc = self.procedures[proc_name]
+        if len(args) != len(proc['params']):
+            raise ValueError(f"Procedure '{proc_name}' expects {len(proc['params'])} arguments, but {len(args)} were given")
         
         self.push_scope()
-        for param, arg in zip(func['params'], args):
-            self.current_scope.set(param, arg)
+        for param, arg in zip(proc['params'], args):
+            self.current_scope.set(param, arg, self.infer_type(arg))
         
-        self.loop_stack.append(('FUNCTION', func_name, 0))
-        result = self.interpret('\n'.join(func['body']))
+        self.loop_stack.append(('PROCEDURE', proc_name, 0))
+        result = self.interpret('\n'.join(proc['body']))
         self.loop_stack.pop()
         self.pop_scope()
         
         return result
 
+    def variable_declaration(self, line):
+        match = re.match(r'DECLARE\s+(\w+)\s*:\s*(\w+)', line)
+        if not match:
+            raise ValueError(f"Invalid variable declaration: {line}")
+        
+        var_name, var_type = match.groups()
+        if var_type not in ['INTEGER', 'REAL', 'CHAR', 'STRING', 'BOOLEAN']:
+            raise ValueError(f"Invalid variable type: {var_type}")
+        
+        self.current_scope.set(var_name, None, var_type)
+
     def array_declaration(self, line):
-        match = re.match(r'ARRAY\s+(\w+)\s*\[(\d+)\](?:\s*=\s*(.+))?', line)
+        match = re.match(r'ARRAY\s+(\w+)\[(\d+):(\d+)\]\s+OF\s+(\w+)', line)
         if not match:
             raise ValueError(f"Invalid array declaration: {line}")
         
-        array_name, size, initial_values = match.groups()
-        size = int(size)
+        array_name, lower, upper, array_type = match.groups()
+        lower = int(lower)
+        upper = int(upper)
         
-        if initial_values:
-            values = [self.evaluate_expression(v.strip()) for v in initial_values.split(',')]
-            if len(values) != size:
-                raise ValueError(f"Array size mismatch: declared size {size}, but got {len(values)} initial values")
-            self.current_scope.set(array_name, values)
-        else:
-            self.current_scope.set(array_name, [0] * size)
-
-    def array_append(self, line):
-        match = re.match(r'APPEND\s+(\w+)\s*,\s*(.+)', line)
-        if not match:
-            raise ValueError(f"Invalid APPEND statement: {line}")
+        if array_type not in ['INTEGER', 'REAL', 'CHAR', 'STRING', 'BOOLEAN']:
+            raise ValueError(f"Invalid array type: {array_type}")
         
-        array_name, value = match.groups()
-        array = self.get_variable(array_name)
-        if not isinstance(array, list):
-            raise ValueError(f"'{array_name}' is not an array")
-        
-        array.append(self.evaluate_expression(value))
-
-    def array_remove(self, line):
-        match = re.match(r'REMOVE\s+(\w+)\s*,\s*(.+)', line)
-        if not match:
-            raise ValueError(f"Invalid REMOVE statement: {line}")
-        
-        array_name, index = match.groups()
-        array = self.get_variable(array_name)
-        if not isinstance(array, list):
-            raise ValueError(f"'{array_name}' is not an array")
-        
-        index = int(self.evaluate_expression(index))
-        if index < 0 or index >= len(array):
-            raise ValueError(f"Index {index} is out of bounds for array '{array_name}'")
-        
-        del array[index]
-
-    def array_length(self, line):
-        match = re.match(r'LENGTH\s+(\w+)', line)
-        if not match:
-            raise ValueError(f"Invalid LENGTH statement: {line}")
-        
-        array_name = match.group(1)
-        array = self.get_variable(array_name)
-        if not isinstance(array, list):
-            raise ValueError(f"'{array_name}' is not an array")
-        
-        return str(len(array))
+        size = upper - lower + 1
+        self.current_scope.set(array_name, [None] * size, f'ARRAY[{lower}:{upper}] OF {array_type}')
 
     def evaluate_expression(self, expression):
         try:
@@ -369,31 +351,56 @@ class PseudocodeInterpreter:
                 array_name, index = array_access.groups()
                 index = int(self.evaluate_expression(index))
                 array = self.get_variable(array_name)
-                if not isinstance(array, list):
+                if not isinstance(array['value'], list):
                     raise ValueError(f"'{array_name}' is not an array")
-                if index < 0 or index >= len(array):
+                if index < 0 or index >= len(array['value']):
                     raise ValueError(f"Index {index} is out of bounds for array '{array_name}'")
-                return array[index]
+                return array['value'][index]
             
             for var in re.findall(r'\b[a-zA-Z_]\w*\b', expression):
                 if var in self.get_all_variables():
-                    expression = re.sub(r'\b' + var + r'\b', str(self.get_variable(var)), expression)
+                    var_value = self.get_variable(var)['value']
+                    expression = re.sub(r'\b' + var + r'\b', str(var_value), expression)
+            
+            # Replace ≠ with != for Python evaluation
+            expression = expression.replace('≠', '!=')
+            # Replace ^ with ** for exponentiation
+            expression = expression.replace('^', '**')
             
             return eval(expression, {"__builtins__": None}, {
                 "+": lambda x, y: x + y,
                 "-": lambda x, y: x - y,
                 "*": lambda x, y: x * y,
                 "/": lambda x, y: x / y,
+                "MOD": lambda x, y: x % y,
                 "<": lambda x, y: x < y,
                 ">": lambda x, y: x > y,
                 "<=": lambda x, y: x <= y,
                 ">=": lambda x, y: x >= y,
-                "==": lambda x, y: x == y,
+                "=": lambda x, y: x == y,
                 "!=": lambda x, y: x != y,
+                "AND": lambda x, y: x and y,
+                "OR": lambda x, y: x or y,
+                "NOT": lambda x: not x,
             })
         except Exception as e:
             loop_info = self.get_loop_info()
             raise ValueError(f"Invalid expression: {expression}. Error: {str(e)}. {loop_info}")
+
+    def infer_type(self, value):
+        if isinstance(value, bool):
+            return 'BOOLEAN'
+        elif isinstance(value, int):
+            return 'INTEGER'
+        elif isinstance(value, float):
+            return 'REAL'
+        elif isinstance(value, str):
+            if len(value) == 1:
+                return 'CHAR'
+            else:
+                return 'STRING'
+        else:
+            return 'UNKNOWN'
 
     def get_next_step(self):
         if self.current_step < len(self.execution_steps):
@@ -406,7 +413,7 @@ class PseudocodeInterpreter:
         self.current_step = 0
         self.global_scope = Scope()
         self.scope_stack = [self.global_scope]
-        self.functions = {}
+        self.procedures = {}
         self.output = []
         self.loop_stack = []
         self.current_line = 0
@@ -431,5 +438,5 @@ class PseudocodeInterpreter:
 
     def format_error(self, error_message, line_number, line_content):
         loop_info = self.get_loop_info()
-        variables = ", ".join([f"{k}={v}" for k, v in self.get_all_variables().items()])
+        variables = ", ".join([f"{k}={v['value']} ({v['type']})" for k, v in self.get_all_variables().items()])
         return f"Error on line {line_number + 1}: {error_message}\nLine content: {line_content}\n{loop_info}\nVariables: {variables}"
