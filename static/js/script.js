@@ -10,7 +10,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const variableStateDiv = document.getElementById('variable-state');
 
     function updateSyntaxHighlighting() {
+        const selection = window.getSelection();
+        const range = selection.getRangeAt(0);
+        const startOffset = range.startOffset;
+        const endOffset = range.endOffset;
+
+        // Temporarily remove event listener to prevent infinite loop
+        pseudocodeEditor.removeEventListener('input', updateSyntaxHighlighting);
+
+        // Apply syntax highlighting
         Prism.highlightElement(pseudocodeEditor);
+
+        // Restore cursor position
+        const newRange = document.createRange();
+        newRange.setStart(pseudocodeEditor.firstChild, startOffset);
+        newRange.setEnd(pseudocodeEditor.firstChild, endOffset);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+
+        // Re-add event listener
+        pseudocodeEditor.addEventListener('input', updateSyntaxHighlighting);
     }
 
     updateSyntaxHighlighting();
@@ -178,10 +197,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 <pre>${data.step_result}</pre>
             `;
 
-            if (data.full_result === data.step_result) {
+            if (data.consistency.output_match && data.consistency.variable_match && data.consistency.error_match) {
                 outputDiv.innerHTML += '<p style="color: green;">Results are consistent!</p>';
             } else {
                 outputDiv.innerHTML += '<p style="color: red;">Inconsistency detected!</p>';
+                if (!data.consistency.output_match) {
+                    outputDiv.innerHTML += '<p>Output mismatch:</p>';
+                    outputDiv.innerHTML += `<pre>${data.consistency.output_diff.join('\n')}</pre>`;
+                }
+                if (!data.consistency.variable_match) {
+                    outputDiv.innerHTML += '<p>Variable state mismatch:</p>';
+                    data.consistency.variable_diffs.forEach(diff => {
+                        outputDiv.innerHTML += `<p>Step ${diff.step}:</p>`;
+                        for (const [var_name, values] of Object.entries(diff.differences)) {
+                            outputDiv.innerHTML += `<p>${var_name}: Full: ${JSON.stringify(values.full)}, Step: ${JSON.stringify(values.step)}</p>`;
+                        }
+                    });
+                }
+                if (!data.consistency.error_match) {
+                    outputDiv.innerHTML += '<p>Error mismatch:</p>';
+                    outputDiv.innerHTML += `<p>Full error: ${data.consistency.full_error || 'None'}</p>`;
+                    outputDiv.innerHTML += `<p>Step error: ${data.consistency.step_error || 'None'}</p>`;
+                }
             }
         } catch (error) {
             outputDiv.innerHTML = `<span class="error">An error occurred: ${error.message}</span>`;
