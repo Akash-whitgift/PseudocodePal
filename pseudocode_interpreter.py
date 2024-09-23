@@ -25,6 +25,7 @@ class PseudocodeInterpreter:
         self.output = []
         self.loop_stack = []
         self.current_line = 0
+        self.error = None
 
     @property
     def current_scope(self):
@@ -44,6 +45,7 @@ class PseudocodeInterpreter:
         self.loop_stack = []
         self.scope_stack = [self.global_scope]
         self.current_line = 0
+        self.error = None
         lines = pseudocode.split('\n')
         i = 0
         while i < len(lines):
@@ -57,11 +59,14 @@ class PseudocodeInterpreter:
                 except Exception as e:
                     error_msg = self.format_error(str(e), i, line)
                     self.output.append(error_msg)
+                    self.error = error_msg
                     self.execution_steps.append({
                         'line': line,
                         'variables': self.get_all_variables(),
-                        'output': error_msg
+                        'output': error_msg,
+                        'error': error_msg
                     })
+                    break
             i += 1
         return '\n'.join(self.output)
 
@@ -70,7 +75,8 @@ class PseudocodeInterpreter:
         self.execution_steps.append({
             'line': line,
             'variables': self.get_all_variables(),
-            'output': None
+            'output': None,
+            'error': None
         })
         
         if line.startswith('OUTPUT'):
@@ -417,6 +423,7 @@ class PseudocodeInterpreter:
         self.output = []
         self.loop_stack = []
         self.current_line = 0
+        self.error = None
 
     def get_all_variables(self):
         variables = {}

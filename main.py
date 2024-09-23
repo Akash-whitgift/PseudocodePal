@@ -5,6 +5,7 @@ import os
 import traceback
 import logging
 import sys
+import difflib
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', stream=sys.stdout)
@@ -222,13 +223,15 @@ def test_consistency():
         full_result = interpreter.interpret(pseudocode)
         full_output = interpreter.output
         full_variables = interpreter.get_all_variables()
+        full_error = interpreter.error
         
         # Step-by-step execution
         interpreter.reset_execution()
         interpreter.interpret(pseudocode)
         step_result = []
         step_output = []
-        step_variables = {}
+        step_variables = []
+        step_error = None
         
         while True:
             step = interpreter.get_next_step()
@@ -237,16 +240,37 @@ def test_consistency():
             if step['output'] is not None:
                 step_result.append(step['output'])
             step_output.append(step['output'])
-            step_variables = step['variables']
+            step_variables.append(step['variables'])
+            if step['error'] is not None:
+                step_error = step['error']
+                break
         
         # Compare results
+        output_diff = list(difflib.unified_diff(full_output, step_output, lineterm=''))
+        
+        variable_diffs = []
+        for i, step_vars in enumerate(step_variables):
+            if i == 0:
+                full_vars = full_variables
+            else:
+                full_vars = step_variables[i-1]
+            
+            var_diff = {}
+            for var, value in step_vars.items():
+                if var not in full_vars or full_vars[var] != value:
+                    var_diff[var] = {'step': value, 'full': full_vars.get(var, 'Not present')}
+            
+            if var_diff:
+                variable_diffs.append({'step': i+1, 'differences': var_diff})
+        
         consistency = {
             'output_match': full_output == step_output,
-            'variable_match': full_variables == step_variables,
-            'full_output': full_output,
-            'step_output': step_output,
-            'full_variables': full_variables,
-            'step_variables': step_variables
+            'variable_match': len(variable_diffs) == 0,
+            'error_match': full_error == step_error,
+            'output_diff': output_diff,
+            'variable_diffs': variable_diffs,
+            'full_error': full_error,
+            'step_error': step_error
         }
         
         logger.info("Consistency test completed")
