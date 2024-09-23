@@ -10,26 +10,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const variableStateDiv = document.getElementById('variable-state');
 
     function updateSyntaxHighlighting() {
-        const selection = window.getSelection();
-        const range = selection.getRangeAt(0);
-        const startOffset = range.startOffset;
-        const endOffset = range.endOffset;
+        try {
+            const selection = window.getSelection();
+            const range = selection.getRangeAt(0);
+            const startOffset = range.startOffset;
+            const endOffset = range.endOffset;
 
-        // Temporarily remove event listener to prevent infinite loop
-        pseudocodeEditor.removeEventListener('input', updateSyntaxHighlighting);
+            pseudocodeEditor.removeEventListener('input', updateSyntaxHighlighting);
 
-        // Apply syntax highlighting
-        Prism.highlightElement(pseudocodeEditor);
+            const content = pseudocodeEditor.textContent;
 
-        // Restore cursor position
-        const newRange = document.createRange();
-        newRange.setStart(pseudocodeEditor.firstChild, startOffset);
-        newRange.setEnd(pseudocodeEditor.firstChild, endOffset);
-        selection.removeAllRanges();
-        selection.addRange(newRange);
+            Prism.highlightElement(pseudocodeEditor);
 
-        // Re-add event listener
-        pseudocodeEditor.addEventListener('input', updateSyntaxHighlighting);
+            if (pseudocodeEditor.textContent !== content) {
+                pseudocodeEditor.textContent = content;
+            }
+
+            if (pseudocodeEditor.firstChild) {
+                const newRange = document.createRange();
+                newRange.setStart(pseudocodeEditor.firstChild, Math.min(startOffset, pseudocodeEditor.textContent.length));
+                newRange.setEnd(pseudocodeEditor.firstChild, Math.min(endOffset, pseudocodeEditor.textContent.length));
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+            }
+
+            pseudocodeEditor.addEventListener('input', updateSyntaxHighlighting);
+        } catch (error) {
+            console.error('Error in updateSyntaxHighlighting:', error);
+            pseudocodeEditor.addEventListener('input', updateSyntaxHighlighting);
+        }
     }
 
     updateSyntaxHighlighting();
