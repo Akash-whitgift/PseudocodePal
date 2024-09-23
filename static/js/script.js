@@ -10,45 +10,49 @@ document.addEventListener('DOMContentLoaded', () => {
     const variableStateDiv = document.getElementById('variable-state');
 
     function updateSyntaxHighlighting() {
-        const selection = window.getSelection();
-        const range = selection.getRangeAt(0);
+        try {
+            const selection = window.getSelection();
+            let range;
+            
+            if (selection.rangeCount > 0) {
+                range = selection.getRangeAt(0);
+            } else {
+                range = document.createRange();
+                range.selectNodeContents(pseudocodeEditor);
+                range.collapse(false);
+            }
 
-        // Create a marker element
-        const marker = document.createElement('span');
-        marker.id = 'cursor-position';
-        range.insertNode(marker);
+            const marker = document.createElement('span');
+            marker.id = 'cursor-position';
+            range.insertNode(marker);
 
-        // Save the current scroll position
-        const scrollTop = pseudocodeEditor.scrollTop;
+            const scrollTop = pseudocodeEditor.scrollTop;
 
-        // Remove the event listener temporarily
-        pseudocodeEditor.removeEventListener('input', updateSyntaxHighlighting);
+            pseudocodeEditor.removeEventListener('input', updateSyntaxHighlighting);
 
-        // Apply syntax highlighting
-        const content = pseudocodeEditor.innerHTML;
-        Prism.highlightElement(pseudocodeEditor);
+            const content = pseudocodeEditor.innerHTML;
+            Prism.highlightElement(pseudocodeEditor);
 
-        // Restore the original content if it was changed
-        if (pseudocodeEditor.innerHTML !== content) {
-            pseudocodeEditor.innerHTML = content;
+            if (pseudocodeEditor.innerHTML !== content) {
+                pseudocodeEditor.innerHTML = content;
+            }
+
+            const newMarker = document.getElementById('cursor-position');
+            if (newMarker) {
+                const newRange = document.createRange();
+                newRange.setStartAfter(newMarker);
+                newRange.setEndAfter(newMarker);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+                newMarker.remove();
+            }
+
+            pseudocodeEditor.scrollTop = scrollTop;
+
+            pseudocodeEditor.addEventListener('input', updateSyntaxHighlighting);
+        } catch (error) {
+            console.error('Error in updateSyntaxHighlighting:', error);
         }
-
-        // Find the marker and restore the cursor position
-        const newMarker = document.getElementById('cursor-position');
-        if (newMarker) {
-            const newRange = document.createRange();
-            newRange.setStartAfter(newMarker);
-            newRange.setEndAfter(newMarker);
-            selection.removeAllRanges();
-            selection.addRange(newRange);
-            newMarker.remove();
-        }
-
-        // Restore the scroll position
-        pseudocodeEditor.scrollTop = scrollTop;
-
-        // Re-add the event listener
-        pseudocodeEditor.addEventListener('input', updateSyntaxHighlighting);
     }
 
     updateSyntaxHighlighting();
