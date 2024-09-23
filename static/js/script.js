@@ -16,23 +16,32 @@ document.addEventListener('DOMContentLoaded', () => {
             const startOffset = range.startOffset;
             const endOffset = range.endOffset;
 
+            // Save the current scroll position
+            const scrollTop = pseudocodeEditor.scrollTop;
+
             pseudocodeEditor.removeEventListener('input', updateSyntaxHighlighting);
 
             const content = pseudocodeEditor.textContent;
 
+            // Apply syntax highlighting
             Prism.highlightElement(pseudocodeEditor);
 
+            // Restore the original content if it was changed
             if (pseudocodeEditor.textContent !== content) {
                 pseudocodeEditor.textContent = content;
             }
 
+            // Restore the cursor position
             if (pseudocodeEditor.firstChild) {
                 const newRange = document.createRange();
-                newRange.setStart(pseudocodeEditor.firstChild, Math.min(startOffset, pseudocodeEditor.textContent.length));
-                newRange.setEnd(pseudocodeEditor.firstChild, Math.min(endOffset, pseudocodeEditor.textContent.length));
+                newRange.setStart(pseudocodeEditor.firstChild, startOffset);
+                newRange.setEnd(pseudocodeEditor.firstChild, endOffset);
                 selection.removeAllRanges();
                 selection.addRange(newRange);
             }
+
+            // Restore the scroll position
+            pseudocodeEditor.scrollTop = scrollTop;
 
             pseudocodeEditor.addEventListener('input', updateSyntaxHighlighting);
         } catch (error) {
