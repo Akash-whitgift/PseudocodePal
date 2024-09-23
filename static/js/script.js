@@ -10,52 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const variableStateDiv = document.getElementById('variable-state');
 
     function updateSyntaxHighlighting() {
-        try {
-            const selection = window.getSelection();
-            let range;
-            
-            if (selection.rangeCount > 0) {
-                range = selection.getRangeAt(0);
-            } else {
-                range = document.createRange();
-                range.selectNodeContents(pseudocodeEditor);
-                range.collapse(false);
-            }
-
-            const marker = document.createElement('span');
-            marker.id = 'cursor-position';
-            range.insertNode(marker);
-
-            const scrollTop = pseudocodeEditor.scrollTop;
-
-            pseudocodeEditor.removeEventListener('input', updateSyntaxHighlighting);
-
-            const content = pseudocodeEditor.innerHTML;
-            Prism.highlightElement(pseudocodeEditor);
-
-            if (pseudocodeEditor.innerHTML !== content) {
-                pseudocodeEditor.innerHTML = content;
-            }
-
-            const newMarker = document.getElementById('cursor-position');
-            if (newMarker) {
-                const newRange = document.createRange();
-                newRange.setStartAfter(newMarker);
-                newRange.setEndAfter(newMarker);
-                selection.removeAllRanges();
-                selection.addRange(newRange);
-                newMarker.remove();
-            }
-
-            pseudocodeEditor.scrollTop = scrollTop;
-
-            pseudocodeEditor.addEventListener('input', updateSyntaxHighlighting);
-        } catch (error) {
-            console.error('Error in updateSyntaxHighlighting:', error);
-        }
+        Prism.highlightElement(pseudocodeEditor);
     }
 
-    updateSyntaxHighlighting();
     pseudocodeEditor.addEventListener('input', updateSyntaxHighlighting);
 
     interpretButton.addEventListener('click', async () => {
@@ -204,55 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const testConsistencyButton = document.createElement('button');
-    testConsistencyButton.textContent = 'Test Consistency';
-    document.querySelector('.button-container').appendChild(testConsistencyButton);
-
-    testConsistencyButton.addEventListener('click', async () => {
-        const pseudocode = pseudocodeEditor.textContent;
-        
-        try {
-            const response = await fetch('/test_consistency', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ pseudocode }),
-            });
-
-            const data = await response.json();
-            outputDiv.innerHTML = `
-                <h3>Full Interpretation Result:</h3>
-                <pre>${data.full_result}</pre>
-                <h3>Step-by-Step Execution Result:</h3>
-                <pre>${data.step_result}</pre>
-            `;
-
-            if (data.consistency.output_match && data.consistency.variable_match && data.consistency.error_match) {
-                outputDiv.innerHTML += '<p style="color: green;">Results are consistent!</p>';
-            } else {
-                outputDiv.innerHTML += '<p style="color: red;">Inconsistency detected!</p>';
-                if (!data.consistency.output_match) {
-                    outputDiv.innerHTML += '<p>Output mismatch:</p>';
-                    outputDiv.innerHTML += `<pre>${data.consistency.output_diff.join('\n')}</pre>`;
-                }
-                if (!data.consistency.variable_match) {
-                    outputDiv.innerHTML += '<p>Variable state mismatch:</p>';
-                    data.consistency.variable_diffs.forEach(diff => {
-                        outputDiv.innerHTML += `<p>Step ${diff.step}:</p>`;
-                        for (const [var_name, values] of Object.entries(diff.differences)) {
-                            outputDiv.innerHTML += `<p>${var_name}: Full: ${JSON.stringify(values.full)}, Step: ${JSON.stringify(values.step)}</p>`;
-                        }
-                    });
-                }
-                if (!data.consistency.error_match) {
-                    outputDiv.innerHTML += '<p>Error mismatch:</p>';
-                    outputDiv.innerHTML += `<p>Full error: ${data.consistency.full_error || 'None'}</p>`;
-                    outputDiv.innerHTML += `<p>Step error: ${data.consistency.step_error || 'None'}</p>`;
-                }
-            }
-        } catch (error) {
-            outputDiv.innerHTML = `<span class="error">An error occurred: ${error.message}</span>`;
-        }
-    });
+    // Initial syntax highlighting
+    updateSyntaxHighlighting();
 });
