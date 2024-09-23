@@ -1,0 +1,39 @@
+2024-09-19 13:41:07,510 - __main__ - INFO - Starting Flask application
+ * Serving Flask app 'main'
+ * Debug mode: on
+2024-09-19 13:41:07,598 - werkzeug - INFO - WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:80
+ * Running on http://172.31.196.60:80
+2024-09-19 13:41:07,598 - werkzeug - INFO - Press CTRL+C to quit
+2024-09-19 13:41:07,599 - werkzeug - INFO -  * Restarting with stat
+2024-09-19 13:41:08,185 - __main__ - INFO - Starting Flask application
+2024-09-19 13:41:08,211 - werkzeug - WARNING -  * Debugger is active!
+2024-09-19 13:41:08,212 - werkzeug - INFO -  * Debugger PIN: 819-846-387
+2024-09-19 13:41:08,347 - __main__ - DEBUG - Serving index page
+2024-09-19 13:41:08,400 - werkzeug - INFO - 172.31.196.60 - - [19/Sep/2024 13:41:08] "GET / HTTP/1.1" 200 -
+2024-09-19 13:41:08,779 - werkzeug - INFO - 172.31.196.60 - - [19/Sep/2024 13:41:08] "GET /static/css/style.css HTTP/1.1" 304 -
+2024-09-19 13:41:08,799 - werkzeug - INFO - 172.31.196.60 - - [19/Sep/2024 13:41:08] "GET /static/js/prism-pseudocode.js HTTP/1.1" 304 -
+2024-09-19 13:41:08,822 - werkzeug - INFO - 172.31.196.60 - - [19/Sep/2024 13:41:08] "GET /static/js/script.js HTTP/1.1" 304 -
+2024-09-19 13:41:15,816 - __main__ - DEBUG - Listed snippets: ['TestSnippet', 'ForLoopTest']
+2024-09-19 13:41:15,816 - werkzeug - INFO - 172.31.196.60 - - [19/Sep/2024 13:41:15] "GET /list_snippets HTTP/1.1" 200 -
+2024-09-19 13:41:21,160 - __main__ - INFO - Snippet 'ForLoopTest' loaded successfully
+2024-09-19 13:41:21,161 - werkzeug - INFO - 172.31.196.60 - - [19/Sep/2024 13:41:21] "GET /load_snippet/ForLoopTest HTTP/1.1" 200 -
+2024-09-19 13:41:23,669 - __main__ - DEBUG - Testing consistency for pseudocode: FUNCTION test(x)
+PRINT x
+FOR i FROM 1 TO 3 DO
+PRIN...
+2024-09-19 13:41:23,670 - __main__ - INFO - Consistency test completed
+2024-09-19 13:41:23,671 - werkzeug - INFO - 172.31.196.60 - - [19/Sep/2024 13:41:23] "POST /test_consistency HTTP/1.1" 200 -
+2024-09-19 13:41:51,913 - __main__ - DEBUG - Testing consistency for pseudocode: FUNCTION test(x)
+PRINT x
+FOR i FROM 1 TO 3 DO
+PRIN...
+2024-09-19 13:41:51,917 - __main__ - INFO - Consistency test completed
+2024-09-19 13:41:51,920 - werkzeug - INFO - 172.31.196.60 - - [19/Sep/2024 13:41:51] "POST /test_consistency HTTP/1.1" 200 -
+2024-09-19 13:41:54,268 - __main__ - DEBUG - Testing consistency for pseudocode: FUNCTION test(x)
+PRINT x
+FOR i FROM 1 TO 3 DO
+PRIN...
+2024-09-19 13:41:54,269 - __main__ - INFO - Consistency test completed
+2024-09-19 13:41:54,269 - werkzeug - INFO - 172.31.196.60 - - [19/Sep/2024 13:41:54] "POST /test_consistency HTTP/1.1" 200 -

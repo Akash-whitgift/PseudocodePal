@@ -91,30 +91,43 @@ ENDFUNCTION
 # Function call
 CALL add(5, 7)
 
-# Array declaration and usage
-ARRAY numbers[5]
-numbers[0] = 10
-numbers[1] = 20
-numbers[2] = 30
-numbers[3] = 40
-numbers[4] = 50
+# Array declaration and initialization
+ARRAY numbers[5] = 10, 20, 30, 40, 50
 
 PRINT "Array elements:"
 FOR i FROM 0 TO 4 DO
     PRINT numbers[i]
 ENDFOR
 
+# Get array length
+PRINT "Array length:"
+PRINT LENGTH numbers
+
+# Append to array
+APPEND numbers, 60
+PRINT "Array after append:"
+FOR i FROM 0 TO 5 DO
+    PRINT numbers[i]
+ENDFOR
+
+# Remove from array
+REMOVE numbers, 2
+PRINT "Array after removing index 2:"
+FOR i FROM 0 TO 4 DO
+    PRINT numbers[i]
+ENDFOR
+
 # Function to calculate sum of array elements
-FUNCTION array_sum(arr, size)
+FUNCTION array_sum(arr)
     sum = 0
-    FOR i FROM 0 TO size - 1 DO
+    FOR i FROM 0 TO LENGTH arr - 1 DO
         sum = sum + arr[i]
     ENDFOR
     PRINT "Sum of array elements:"
     PRINT sum
 ENDFUNCTION
 
-CALL array_sum(numbers, 5)
+CALL array_sum(numbers)
 """
     return jsonify({'example': example_code})
 
@@ -207,4 +220,4 @@ def test_consistency():
 
 if __name__ == '__main__':
     logger.info("Starting Flask application")
-    app.run(host='0.0.0.0', port=80, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

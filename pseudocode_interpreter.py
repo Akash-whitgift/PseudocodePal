@@ -55,7 +55,7 @@ class PseudocodeInterpreter:
                     if result is not None:
                         self.output.append(result)
                 except Exception as e:
-                    error_msg = self.format_error(str(e), i)
+                    error_msg = self.format_error(str(e), i, line)
                     self.output.append(error_msg)
                     self.execution_steps.append({
                         'line': line,
@@ -95,6 +95,16 @@ class PseudocodeInterpreter:
         elif line.startswith('ARRAY'):
             self.array_declaration(line)
             return None, i
+        elif line.startswith('APPEND'):
+            self.array_append(line)
+            return None, i
+        elif line.startswith('REMOVE'):
+            self.array_remove(line)
+            return None, i
+        elif line.startswith('LENGTH'):
+            result = self.array_length(line)
+            self.execution_steps[-1]['output'] = result
+            return result, i
         elif line in ['ENDFOR', 'ENDWHILE', 'ENDIF', 'ENDFUNCTION']:
             if self.loop_stack and self.loop_stack[-1][0] == line[3:]:
                 self.loop_stack.pop()
@@ -294,12 +304,60 @@ class PseudocodeInterpreter:
         return result
 
     def array_declaration(self, line):
-        match = re.match(r'ARRAY\s+(\w+)\s*\[(\d+)\]', line)
+        match = re.match(r'ARRAY\s+(\w+)\s*\[(\d+)\](?:\s*=\s*(.+))?', line)
         if not match:
             raise ValueError(f"Invalid array declaration: {line}")
         
-        array_name, size = match.groups()
-        self.current_scope.set(array_name, [0] * int(size))
+        array_name, size, initial_values = match.groups()
+        size = int(size)
+        
+        if initial_values:
+            values = [self.evaluate_expression(v.strip()) for v in initial_values.split(',')]
+            if len(values) != size:
+                raise ValueError(f"Array size mismatch: declared size {size}, but got {len(values)} initial values")
+            self.current_scope.set(array_name, values)
+        else:
+            self.current_scope.set(array_name, [0] * size)
+
+    def array_append(self, line):
+        match = re.match(r'APPEND\s+(\w+)\s*,\s*(.+)', line)
+        if not match:
+            raise ValueError(f"Invalid APPEND statement: {line}")
+        
+        array_name, value = match.groups()
+        array = self.get_variable(array_name)
+        if not isinstance(array, list):
+            raise ValueError(f"'{array_name}' is not an array")
+        
+        array.append(self.evaluate_expression(value))
+
+    def array_remove(self, line):
+        match = re.match(r'REMOVE\s+(\w+)\s*,\s*(.+)', line)
+        if not match:
+            raise ValueError(f"Invalid REMOVE statement: {line}")
+        
+        array_name, index = match.groups()
+        array = self.get_variable(array_name)
+        if not isinstance(array, list):
+            raise ValueError(f"'{array_name}' is not an array")
+        
+        index = int(self.evaluate_expression(index))
+        if index < 0 or index >= len(array):
+            raise ValueError(f"Index {index} is out of bounds for array '{array_name}'")
+        
+        del array[index]
+
+    def array_length(self, line):
+        match = re.match(r'LENGTH\s+(\w+)', line)
+        if not match:
+            raise ValueError(f"Invalid LENGTH statement: {line}")
+        
+        array_name = match.group(1)
+        array = self.get_variable(array_name)
+        if not isinstance(array, list):
+            raise ValueError(f"'{array_name}' is not an array")
+        
+        return str(len(array))
 
     def evaluate_expression(self, expression):
         try:
@@ -371,7 +429,7 @@ class PseudocodeInterpreter:
             return f"In {loop_type} loop" + (f", variable '{var}'" if var else "") + f", iteration {iteration}"
         return "Not currently in a loop"
 
-    def format_error(self, error_message, line_number):
+    def format_error(self, error_message, line_number, line_content):
         loop_info = self.get_loop_info()
         variables = ", ".join([f"{k}={v}" for k, v in self.get_all_variables().items()])
-        return f"Error on line {line_number + 1}: {error_message}. {loop_info}. Variables: {variables}"
+        return f"Error on line {line_number + 1}: {error_message}\nLine content: {line_content}\n{loop_info}\nVariables: {variables}"

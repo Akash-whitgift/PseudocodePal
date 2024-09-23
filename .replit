@@ -47,11 +47,5 @@ waitForPort = 5000
 run = ["sh", "-c", "python main.py"]
 
 [[ports]]
-localPort = 80
-externalPort = 80
-
-[[ports]]
 localPort = 5000
-
-[[ports]]
-localPort = 8080
+externalPort = 80
